@@ -7,11 +7,11 @@ import { useAuth } from "../context/AuthContext";
  *
  * Three states (driven by useAuth):
  *  - Supabase NOT configured  -> guest mode note (explains why there's no login)
- *  - configured, logged out  -> "Sign in with Google" + new/existing guidance
+ *  - configured, logged out  -> "Continue with Google" + new/existing guidance
  *  - configured, logged in   -> identity + Sign out (Admin button if admin)
  */
 export default function AccountBar({ onOpenAdmin }) {
-  const { user, profile, authConfigured, signInWithGoogle, signOut } = useAuth();
+  const { user, profile, authConfigured, signInWithGoogle, signOut, authError } = useAuth();
 
   // --- Guest mode: Supabase keys aren't set on the host, so no login is possible.
   if (!authConfigured) {
@@ -30,8 +30,13 @@ export default function AccountBar({ onOpenAdmin }) {
     return (
       <div className="flex items-center gap-3">
         <button onClick={signInWithGoogle} className="btn" data-testid="signin-btn">
-          Sign in with Google
+          Continue with Google
         </button>
+        {authError && (
+          <p className="text-danger text-xs mt-1" role="alert">
+            {authError}
+          </p>
+        )}
         <span className="hidden md:inline text-[11px] text-slate-500 max-w-[190px] leading-tight">
           New here? Start now — your plan is saved on this device. Sign in to sync across devices and unlock sharing.
         </span>

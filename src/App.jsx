@@ -94,8 +94,8 @@ export default function DeploymentTracker() {
     [allItems]
   );
   const activeItems = useMemo(
-    () => allItems.filter((i) => !skipped[i.id]),
-    [allItems, skipped]
+    () => allItems.filter((i) => !skipped[i.id] && !checked[i.id]),
+    [allItems, skipped, checked]
   );
   useEffect(() => {
     if (!isSupabaseConfigured) return;

@@ -14,7 +14,7 @@ export default function GuestBanner() {
     <div className="border-[3px] border-black bg-white px-4 py-3 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <p className="text-sm text-black leading-snug">
         <span className="font-display uppercase tracking-wide">Sign in to sync progress.</span>{" "}
-        Your plan is saved on this device only. Sign in with Google to back it up, share
+        Your plan is saved on this device only. Continue with Google to back it up, share
         curricula, and pick up on any device.
       </p>
       <button
@@ -23,7 +23,7 @@ export default function GuestBanner() {
         data-testid="signin-btn"
         disabled={!authConfigured}
       >
-        Sign in with Google
+        Continue with Google
       </button>
     </div>
   );

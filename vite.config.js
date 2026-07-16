@@ -28,8 +28,19 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        globPatterns: ["**/*.{js,css,svg,png,woff2}"],
         navigateFallback: "index.html",
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "unifies-pages",
+              networkTimeoutSeconds: 3,
+            },
+          },
+        ],
       },
     }),
   ],

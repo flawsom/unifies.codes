@@ -730,7 +730,7 @@ export default function DeploymentTracker() {
 
         {/* DEPLOYMENT ROUTE */}
         <div className="max-w-4xl mx-auto px-5 pb-5 overflow-x-auto">
-          <div className="flex items-center min-w-[600px]">
+          <div className="flex items-center gap-x-1 min-w-[320px] mx-auto w-max">
             {ALL_PHASES.map((phase, idx) => {
               const pct = phasePct(phase);
               const complete = pct === 100;

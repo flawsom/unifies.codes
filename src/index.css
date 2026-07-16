@@ -505,3 +505,42 @@
 .alert-info {
   @apply border-2 border-line bg-elevated p-3 text-fg;
 }
+/* ============================================================
+   UNIFICATION LAYER — professional, consistent brutalist system
+   Enforces square corners, 2px borders, and offset shadows
+   across ALL components (including the Tailwind-default ones)
+   so the visual language is identical on every screen size.
+   ============================================================ */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-width: 2px;
+    border-color: rgb(var(--line));
+  }
+  /* Square everything — brutalist, no soft radii */
+  .rounded,
+  .rounded-sm,
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-full { border-radius: 0 !important; }
+}
+
+@layer utilities {
+  /* Shadows → signature hard offset */
+  .shadow-2xl,
+  .shadow-xl,
+  .shadow-lg,
+  .shadow-md { box-shadow: var(--shadow-hard) !important; }
+  .shadow { box-shadow: var(--shadow-hard-sm) !important; }
+
+  /* Consistent semantic accent borders */
+  .border-cyan-900\/50 { border-color: rgb(var(--line)) !important; }
+  .border-amber-500 { border-color: rgb(var(--warn)) !important; }
+
+  /* Progress/level bars keep their track color but square */
+  .bg-slate-900 { background-color: rgb(var(--surface)) !important; }
+}

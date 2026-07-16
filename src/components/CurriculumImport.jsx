@@ -82,7 +82,7 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
             </li>
           </ol>
           <p className="mt-3 text-xs text-slate-500">
-            No account needed — your plan is saved on this device. Sign in with Google (top
+            No account needed — your plan is saved on this device. Continue with Google (top
             right) to sync across devices and unlock shareable profiles.
           </p>
         </div>

@@ -4,4 +4,54 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
+
+/* Visible focus ring for keyboard users (a11y) */
+:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* ---- Light theme (toggled by adding `light` class to <html>) ----
+   The app is built dark-first with explicit slate utilities; for a coherent
+   light mode we remap the core surface tokens. Accent colors are kept. */
+html.light {
+  color-scheme: light;
+}
+html.light body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+html.light .bg-slate-950 { background-color: #f1f5f9 !important; }
+html.light .bg-slate-950\/95 { background-color: rgba(241,245,249,0.95) !important; }
+html.light .bg-slate-950\/70 { background-color: rgba(241,245,249,0.7) !important; }
+html.light .bg-slate-900 { background-color: #ffffff !important; }
+html.light .bg-slate-900\/60 { background-color: rgba(255,255,255,0.7) !important; }
+html.light .bg-slate-900\/95 { background-color: rgba(255,255,255,0.95) !important; }
+html.light .text-slate-100 { color: #0f172a !important; }
+html.light .text-slate-200 { color: #1e293b !important; }
+html.light .text-slate-300 { color: #334155 !important; }
+html.light .text-slate-400 { color: #475569 !important; }
+html.light .text-slate-500 { color: #64748b !important; }
+html.light .text-slate-600 { color: #94a3b8 !important; }
+html.light .border-slate-800 { border-color: #e2e8f0 !important; }
+html.light .border-slate-700 { border-color: #cbd5e1 !important; }
+html.light .border-slate-600 { border-color: #94a3b8 !important; }
+html.light .bg-slate-800 { background-color: #e2e8f0 !important; }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop { animation: pop 0.35s ease-out; }

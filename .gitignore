@@ -2,3 +2,23 @@ node_modules
 dist
 .DS_Store
 *.local
+.freebuff/desktop.db
+.freebuff/desktop.db-shm
+.freebuff/desktop.db-wal
+
+# env files (never commit keys)
+.env
+.env.*
+!.env.example
+
+# agent / runtime artifacts
+.agents
+.aionrs
+.freebuff/
+
+# test / build artifacts
+coverage
+playwright-report
+test-results
+*.log
+codebuff-integration.js

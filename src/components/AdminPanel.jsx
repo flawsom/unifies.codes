@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const TABS = [
   { id: "accounts", label: "Accounts" },
@@ -10,6 +11,7 @@ const TABS = [
 
 export default function AdminPanel({ defaultCurriculum, onClose }) {
   const { refreshProfile } = useAuth();
+  const trapRef = useFocusTrap(true);
   const [tab, setTab] = useState("accounts");
   const [profiles, setProfiles] = useState([]);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
@@ -123,7 +125,7 @@ export default function AdminPanel({ defaultCurriculum, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-slate-950/95 backdrop-blur-sm overflow-y-auto">
+    <div ref={trapRef} className="fixed inset-0 z-[300] bg-slate-950/95 backdrop-blur-sm overflow-y-auto" role="dialog" aria-modal="true" aria-label="Admin panel">
       <div className="max-w-4xl mx-auto px-5 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>

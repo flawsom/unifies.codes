@@ -1,270 +1,58 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { supabase, isSupabaseConfigured } from "./lib/supabaseClient";
 import { useAuth } from "./context/AuthContext";
 import AccountBar from "./components/AccountBar";
-import AdminPanel from "./components/AdminPanel";
+import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, allItems } from "./data/curriculum";
+import {
+  todayStr,
+  daySetFromCheckedAt,
+  currentStreak,
+  longestStreak,
+  activeLast7,
+  buildHeatmap,
+  totalXp,
+  levelFromXp,
+  momentumPercent,
+} from "./utils/progressStats";
+import ActivityHeatmap from "./components/ActivityHeatmap";
+import CommandPalette from "./components/CommandPalette";
+import Insights from "./components/Insights";
+import FocusView from "./components/FocusView";
+import ShortcutsHelp from "./components/ShortcutsHelp";
+import { ToastProvider, useToast } from "./components/Toast";
+import { resolveSharedUser, buildSnapshot } from "./utils/share";
+import { useTheme } from "./hooks/useTheme";
+import { useNotifications } from "./hooks/useNotifications";
+import { exportProgress, exportCsv, parseImport } from "./utils/io";
 
-// ---------------------------------------------------------------------------
-// DATA: the bundled default curriculum, basic -> advanced -> staff/principal-level.
-// This is the fallback used in guest mode and the seed for the `curriculum`
-// table in Supabase. Admins can edit the live version from the Admin Panel.
-// ---------------------------------------------------------------------------
-const DEFAULT_PHASES = [
-  {
-    id: "p1",
-    code: "01",
-    title: "Python Foundations",
-    sub: "Weeks 1\u20133 \u00b7 Days 1\u201321",
-    weeks: [
-      {
-        week: 1,
-        title: "Python From Zero, Fast",
-        items: [
-          { id: "p1w1i1", text: "Variables, data types, operators", resource: { label: "Python Tutorial \u00a73", url: "https://docs.python.org/3/tutorial/introduction.html" } },
-          { id: "p1w1i2", text: "Control flow: if/else, for/while loops", resource: { label: "Python Tutorial \u00a74", url: "https://docs.python.org/3/tutorial/controlflow.html" } },
-          { id: "p1w1i3", text: "Functions, default args, *args/**kwargs", resource: { label: "Python Docs: Defining Functions", url: "https://docs.python.org/3/tutorial/controlflow.html#defining-functions" } },
-          { id: "p1w1i4", text: "Lists, tuples, dicts, sets + comprehensions", resource: { label: "Real Python: Lists & Tuples", url: "https://realpython.com/python-lists-tuples/" } },
-          { id: "p1w1i5", text: "String formatting & f-strings", resource: { label: "Real Python: f-Strings", url: "https://realpython.com/python-f-strings/" } },
-          { id: "p1w1i6", text: "Error handling: try/except/finally", resource: { label: "Python Tutorial: Errors", url: "https://docs.python.org/3/tutorial/errors.html" } },
-          { id: "p1w1i7", text: "Virtual environments & pip", resource: { label: "Python Tutorial: venv", url: "https://docs.python.org/3/tutorial/venv.html" } },
-          { id: "p1w1i8", text: "\ud83c\udfaf Milestone: Port your BPUT SGPA calculation to Python from scratch", resource: null },
-        ],
-      },
-      {
-        week: 2,
-        title: "Intermediate & Idiomatic Python",
-        items: [
-          { id: "p1w2i1", text: "Classes & OOP basics", resource: { label: "Python Tutorial: Classes", url: "https://docs.python.org/3/tutorial/classes.html" } },
-          { id: "p1w2i2", text: "Inheritance, dunder methods, dataclasses", resource: { label: "Real Python: Data Classes", url: "https://realpython.com/python-data-classes/" } },
-          { id: "p1w2i3", text: "File I/O & working with JSON/CSV", resource: { label: "Python Docs: csv module", url: "https://docs.python.org/3/library/csv.html" } },
-          { id: "p1w2i4", text: "Decorators", resource: { label: "Real Python: Decorators Primer", url: "https://realpython.com/primer-on-python-decorators/" } },
-          { id: "p1w2i5", text: "Context managers (the `with` statement)", resource: { label: "Real Python: The with Statement", url: "https://realpython.com/python-with-statement/" } },
-          { id: "p1w2i6", text: "Type hints & the `typing` module", resource: { label: "Python Docs: typing", url: "https://docs.python.org/3/library/typing.html" } },
-          { id: "p1w2i7", text: "Testing basics with pytest", resource: { label: "pytest: Getting Started", url: "https://docs.pytest.org/en/stable/getting-started.html" } },
-          { id: "p1w2i8", text: "\ud83c\udfaf Milestone: CLI tool that cleans a messy CSV and outputs a report", resource: null },
-        ],
-      },
-      {
-        week: 3,
-        title: "Python for Data & Backend",
-        items: [
-          { id: "p1w3i1", text: "pandas fundamentals: Series, DataFrame, indexing", resource: { label: "pandas: Intro Tutorials", url: "https://pandas.pydata.org/docs/getting_started/intro_tutorials/index.html" } },
-          { id: "p1w3i2", text: "pandas groupby, merge, pivot tables", resource: { label: "pandas: Group By User Guide", url: "https://pandas.pydata.org/docs/user_guide/groupby.html" } },
-          { id: "p1w3i3", text: "numpy fundamentals", resource: { label: "NumPy: Quickstart", url: "https://numpy.org/doc/stable/user/quickstart.html" } },
-          { id: "p1w3i4", text: "FastAPI basics: routes, request/response models", resource: { label: "FastAPI Tutorial", url: "https://fastapi.tiangolo.com/tutorial/" } },
-          { id: "p1w3i5", text: "SQLAlchemy \u2014 connecting Python to Postgres", resource: { label: "SQLAlchemy: Unified Tutorial", url: "https://docs.sqlalchemy.org/en/20/tutorial/" } },
-          { id: "p1w3i6", text: "Async basics in Python (async/await)", resource: { label: "Python Docs: asyncio tasks", url: "https://docs.python.org/3/library/asyncio-task.html" } },
-          { id: "p1w3i7", text: "\ud83c\udfaf Milestone: FastAPI service querying Postgres, running locally", resource: null },
-        ],
-      },
-    ],
-  },
-  {
-    id: "p2",
-    code: "02",
-    title: "Cloud & Containers",
-    sub: "Weeks 4\u20136 \u00b7 Days 22\u201342",
-    weeks: [
-      {
-        week: 4,
-        title: "Docker",
-        items: [
-          { id: "p2w4i1", text: "Images vs. containers, core concepts", resource: { label: "Docker: Overview", url: "https://docs.docker.com/get-started/docker-overview/" } },
-          { id: "p2w4i2", text: "Writing a Dockerfile for a Python app", resource: { label: "Docker: Build Python Images", url: "https://docs.docker.com/language/python/build-images/" } },
-          { id: "p2w4i3", text: "Volumes & networking basics", resource: { label: "Docker: Volumes", url: "https://docs.docker.com/storage/volumes/" } },
-          { id: "p2w4i4", text: "Multi-stage builds (lean production images)", resource: { label: "Docker: Multi-Stage Builds", url: "https://docs.docker.com/build/building/multi-stage/" } },
-          { id: "p2w4i5", text: "\ud83c\udfaf Milestone: Containerize the Week 3 FastAPI service", resource: null },
-        ],
-      },
-      {
-        week: 5,
-        title: "Docker Compose + Kubernetes Intro",
-        items: [
-          { id: "p2w5i1", text: "Docker Compose fundamentals", resource: { label: "Docker: Compose Docs", url: "https://docs.docker.com/compose/" } },
-          { id: "p2w5i2", text: "Kubernetes core concepts: pods, deployments, services", resource: { label: "Kubernetes Basics Tutorial", url: "https://kubernetes.io/docs/tutorials/kubernetes-basics/" } },
-          { id: "p2w5i3", text: "kubectl fundamentals", resource: { label: "Kubernetes: kubectl Reference", url: "https://kubernetes.io/docs/reference/kubectl/" } },
-          { id: "p2w5i4", text: "ConfigMaps & Secrets", resource: { label: "Kubernetes: ConfigMaps", url: "https://kubernetes.io/docs/concepts/configuration/configmap/" } },
-          { id: "p2w5i5", text: "(Stretch) Kubernetes the Hard Way \u2014 build intuition manually", resource: { label: "Kelsey Hightower: K8s the Hard Way", url: "https://github.com/kelseyhightower/kubernetes-the-hard-way" } },
-          { id: "p2w5i6", text: "\ud83c\udfaf Milestone: App + Postgres running together via Compose", resource: null },
-        ],
-      },
-      {
-        week: 6,
-        title: "Cloud Platforms \u2014 AWS + GCP",
-        items: [
-          { id: "p2w6i1", text: "AWS ECS or EC2 deployment", resource: { label: "AWS: ECS Developer Guide", url: "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html" } },
-          { id: "p2w6i2", text: "AWS IAM basics (roles & policies)", resource: { label: "AWS: IAM Introduction", url: "https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html" } },
-          { id: "p2w6i3", text: "GCP Cloud Run basics", resource: { label: "Google Cloud: Cloud Run Docs", url: "https://cloud.google.com/run/docs" } },
-          { id: "p2w6i4", text: "AWS \u2194 GCP service mapping (speak both dialects)", resource: { label: "Google Cloud: AWS/Azure/GCP Comparison", url: "https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison" } },
-          { id: "p2w6i5", text: "\ud83c\udfaf Milestone: Deploy the same container to AWS AND GCP", resource: null },
-        ],
-      },
-    ],
-  },
-  {
-    id: "p3",
-    code: "03",
-    title: "The Integration Wall",
-    sub: "Weeks 7\u20139 \u00b7 Days 43\u201363",
-    weeks: [
-      {
-        week: 7,
-        title: "Enterprise Authentication",
-        items: [
-          { id: "p3w7i1", text: "OAuth 2.0 fundamentals", resource: { label: "OAuth.net: OAuth 2.0", url: "https://oauth.net/2/" } },
-          { id: "p3w7i2", text: "OIDC on top of OAuth", resource: { label: "OpenID: How Connect Works", url: "https://openid.net/developers/how-connect-works/" } },
-          { id: "p3w7i3", text: "SAML fundamentals \u2014 the enterprise-specific gap", resource: { label: "Auth0: SAML Protocol", url: "https://auth0.com/docs/authenticate/protocols/saml" } },
-          { id: "p3w7i4", text: "JWTs \u2014 structure, signing, verification", resource: { label: "JWT.io: Introduction", url: "https://jwt.io/introduction" } },
-          { id: "p3w7i5", text: "\ud83c\udfaf Milestone: Write and teach back an OAuth vs OIDC vs SAML explainer", resource: null },
-        ],
-      },
-      {
-        week: 8,
-        title: "Messy Data & Legacy Integration",
-        items: [
-          { id: "p3w8i1", text: "Idempotency patterns for unreliable systems", resource: { label: "AWS Builders' Library: Idempotent APIs", url: "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" } },
-          { id: "p3w8i2", text: "Exponential backoff & jitter", resource: { label: "AWS Builders' Library: Timeouts & Backoff", url: "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" } },
-          { id: "p3w8i3", text: "Schema normalization from inconsistent sources", resource: null },
-          { id: "p3w8i4", text: "Working against undocumented/legacy APIs", resource: null },
-          { id: "p3w8i5", text: "\ud83c\udfaf Milestone: Pipeline pulling a real, messy public API into a clean schema", resource: null },
-        ],
-      },
-      {
-        week: 9,
-        title: "Security & Compliance",
-        items: [
-          { id: "p3w9i1", text: "Postgres Row-Level Security, from first principles", resource: { label: "PostgreSQL Docs: Row Security", url: "https://www.postgresql.org/docs/current/ddl-rowsecurity.html" } },
-          { id: "p3w9i2", text: "SECURITY DEFINER functions", resource: { label: "PostgreSQL Docs: CREATE FUNCTION", url: "https://www.postgresql.org/docs/current/sql-createfunction.html" } },
-          { id: "p3w9i3", text: "k-anonymity & data minimization, generalized", resource: null },
-          { id: "p3w9i4", text: "Differential privacy fundamentals", resource: { label: "Programming Differential Privacy (free book)", url: "https://programming-dp.com/" } },
-          { id: "p3w9i5", text: "\ud83c\udfaf Milestone: Design a privacy-preserving analytics layer for a new dataset, on paper", resource: null },
-        ],
-      },
-    ],
-  },
-  {
-    id: "p4",
-    code: "04",
-    title: "AI-Native Stack",
-    sub: "Weeks 10\u201312 \u00b7 Days 64\u201384",
-    weeks: [
-      {
-        week: 10,
-        title: "LLM Fundamentals + RAG",
-        items: [
-          { id: "p4w10i1", text: "Embeddings & vector search fundamentals", resource: { label: "LangChain: Embedding Models", url: "https://python.langchain.com/docs/concepts/embedding_models/" } },
-          { id: "p4w10i2", text: "Vector databases: pgvector (uses Postgres you know)", resource: { label: "pgvector on GitHub", url: "https://github.com/pgvector/pgvector" } },
-          { id: "p4w10i3", text: "RAG pipeline architecture end to end", resource: { label: "LangChain: RAG Tutorial", url: "https://python.langchain.com/docs/tutorials/rag/" } },
-          { id: "p4w10i4", text: "Chunking strategies", resource: { label: "Pinecone: Chunking Strategies", url: "https://www.pinecone.io/learn/chunking-strategies/" } },
-          { id: "p4w10i5", text: "\ud83c\udfaf Milestone: RAG system over a real, messy dataset (not a tutorial sample)", resource: null },
-        ],
-      },
-      {
-        week: 11,
-        title: "Agent Orchestration",
-        items: [
-          { id: "p4w11i1", text: "LangGraph fundamentals", resource: { label: "LangGraph Docs", url: "https://langchain-ai.github.io/langgraph/" } },
-          { id: "p4w11i2", text: "CrewAI fundamentals (alternative framework)", resource: { label: "CrewAI Docs", url: "https://docs.crewai.com/" } },
-          { id: "p4w11i3", text: "Tool / function calling patterns", resource: { label: "LangChain: Tool Calling Concepts", url: "https://python.langchain.com/docs/concepts/tool_calling/" } },
-          { id: "p4w11i4", text: "\ud83c\udfaf Milestone: Ship one working multi-step agent, end to end", resource: null },
-        ],
-      },
-      {
-        week: 12,
-        title: "Evaluation & Observability",
-        items: [
-          { id: "p4w12i1", text: "LLM evaluation frameworks", resource: { label: "Ragas: Evaluation Docs", url: "https://docs.ragas.io/" } },
-          { id: "p4w12i2", text: "Building real eval datasets (the underrated skill)", resource: { label: "Eugene Yan: Evals", url: "https://eugeneyan.com/writing/evals/" } },
-          { id: "p4w12i3", text: "Tracing & observability for LLM apps", resource: { label: "LangSmith Docs", url: "https://docs.smith.langchain.com/" } },
-          { id: "p4w12i4", text: "Guardrails & output validation basics", resource: { label: "Guardrails AI Docs", url: "https://www.guardrailsai.com/docs" } },
-          { id: "p4w12i5", text: "\ud83c\udfaf Milestone: Eval suite (10\u201315 cases) for your Week 10\u201311 build", resource: null },
-        ],
-      },
-    ],
-  },
-  {
-    id: "p5",
-    code: "05",
-    title: "Portfolio & Interview",
-    sub: "Week 13 \u00b7 Days 85\u201390",
-    weeks: [
-      {
-        week: 13,
-        title: "Consolidation",
-        items: [
-          { id: "p5w13i1", text: "Reframe BPUT Result Hub & Unify in FDE language (customer, ambiguity, ownership)", resource: null },
-          { id: "p5w13i2", text: "Practice scoping vague, high-stakes problems out loud", resource: null },
-          { id: "p5w13i3", text: "Run mock technical + behavioral interviews", resource: { label: "Pramp: Free Peer Mock Interviews", url: "https://www.pramp.com/" } },
-          { id: "p5w13i4", text: "Update resume/LinkedIn specifically for FDE roles", resource: null },
-          { id: "p5w13i5", text: "\ud83c\udfaf Milestone: Full narrative run-through of both projects, FDE-framed", resource: null },
-        ],
-      },
-    ],
-  },
-];
-
-const DEFAULT_BONUS = {
-  id: "bonus",
-  code: "\u2605",
-  title: "Beyond Day 90: Staff / Principal-Level Mastery",
-  sub: "Open-ended \u00b7 the top 1% track",
-  weeks: [
-    {
-      week: "\u221e",
-      title: "Where the Top Sit",
-      items: [
-        { id: "bi1", text: "Distributed systems fundamentals", resource: { label: "\u201cDesigning Data-Intensive Applications\u201d (Kleppmann)", url: "https://dataintensive.net/" } },
-        { id: "bi2", text: "System design practice at real scale", resource: { label: "System Design Primer (GitHub)", url: "https://github.com/donnemartin/system-design-primer" } },
-        { id: "bi3", text: "Technical writing & RFC authorship", resource: { label: "Google: Technical Writing Courses", url: "https://developers.google.com/tech-writing" } },
-        { id: "bi4", text: "Open-source contribution", resource: { label: "Open Source Guide: How to Contribute", url: "https://opensource.guide/how-to-contribute/" } },
-        { id: "bi5", text: "Applied AI systems at production scale", resource: { label: "Full Stack Deep Learning", url: "https://fullstackdeeplearning.com/" } },
-        { id: "bi6", text: "ML systems design interviews & thinking", resource: { label: "Chip Huyen: ML Interviews Book", url: "https://huyenchip.com/ml-interviews-book/" } },
-        { id: "bi7", text: "Negotiation & stakeholder management", resource: { label: "Harvard PON: Free Negotiation Reports", url: "https://www.pon.harvard.edu/free-reports/" } },
-        { id: "bi8", text: "Public speaking / conference-level talks", resource: null },
-        { id: "bi9", text: "Mentorship \u2014 building leverage through others", resource: null },
-      ],
-    },
-  ],
-};
+// Code-split the heavier panels so the initial bundle stays small.
+const AdminPanel = lazy(() => import("./components/AdminPanel"));
+const SharePanelLazy = lazy(() => import("./components/SharePanel"));
 
 const STORAGE_KEY = "fde-tracker-v1";
+const STORAGE_AT_KEY = "fde-tracker-checkedAt-v1";
 
-const DEFAULT_PARALLEL_TRACK = {
-  id: "dsa",
-  title: "Continuous Track: DSA & Competitive Programming",
-  note: "Run this alongside every phase above \u2014 aim for 3\u20135 problems/week, not all at once at the end.",
-  items: [
-    { id: "dsa1", text: "Arrays & Strings fundamentals", resource: { label: "LeetCode: Array & String Explore Card", url: "https://leetcode.com/explore/learn/card/array-and-string/" } },
-    { id: "dsa2", text: "Two pointers & sliding window", resource: { label: "LeetCode: Two Pointers Tag", url: "https://leetcode.com/tag/two-pointers/" } },
-    { id: "dsa3", text: "Hashmaps & sets", resource: { label: "LeetCode: Hash Table Tag", url: "https://leetcode.com/tag/hash-table/" } },
-    { id: "dsa4", text: "Recursion & backtracking", resource: { label: "LeetCode: Recursion I Explore Card", url: "https://leetcode.com/explore/learn/card/recursion-i/" } },
-    { id: "dsa5", text: "Linked lists", resource: { label: "LeetCode: Linked List Explore Card", url: "https://leetcode.com/explore/learn/card/linked-list/" } },
-    { id: "dsa6", text: "Stacks & queues", resource: { label: "LeetCode: Stack Tag", url: "https://leetcode.com/tag/stack/" } },
-    { id: "dsa7", text: "Trees & binary search trees", resource: { label: "LeetCode: Tree Explore Card", url: "https://leetcode.com/explore/learn/card/data-structure-tree/" } },
-    { id: "dsa8", text: "Heaps / priority queues", resource: { label: "LeetCode: Heap Tag", url: "https://leetcode.com/tag/heap-priority-queue/" } },
-    { id: "dsa9", text: "Graphs: BFS/DFS", resource: { label: "LeetCode: Graph Explore Card", url: "https://leetcode.com/explore/learn/card/graph/" } },
-    { id: "dsa10", text: "Dynamic programming fundamentals", resource: { label: "LeetCode: DP Explore Card", url: "https://leetcode.com/explore/learn/card/dynamic-programming/" } },
-    { id: "dsa11", text: "Greedy algorithms", resource: { label: "LeetCode: Greedy Tag", url: "https://leetcode.com/tag/greedy/" } },
-    { id: "dsa12", text: "Binary search patterns", resource: { label: "LeetCode: Binary Search Explore Card", url: "https://leetcode.com/explore/learn/card/binary-search/" } },
-    { id: "dsa13", text: "Structured, interview-style practice sets", resource: { label: "HackerRank: Algorithms Domain", url: "https://www.hackerrank.com/domains/algorithms" } },
-    { id: "dsa14", text: "Timed-contest rhythm (builds real interview pressure tolerance)", resource: { label: "Codeforces: Contests", url: "https://codeforces.com/contests" } },
-    { id: "dsa15", text: "\ud83c\udfaf Milestone: 50+ problems solved across all three platforms combined", resource: null },
-  ],
-};
-
-const DEFAULT_CURRICULUM = {
-  phases: DEFAULT_PHASES,
-  bonus: DEFAULT_BONUS,
-  parallelTrack: DEFAULT_PARALLEL_TRACK,
-};
+const itemsById = Object.fromEntries(allItems.map((i) => [i.id, i]));
 
 export default function DeploymentTracker() {
   const { isSupabaseConfigured: authConfigured, authLoading, user } = useAuth();
+  const [theme, setTheme] = useTheme();
+  const { celebrate, notify } = useToast();
 
-  // --- curriculum (topics): bundled default, or the live version from Supabase ---
+  // Read-only shared profile (?u=username)
+  const [sharedUser, setSharedUser] = useState(null);
+  const [sharedCompare, setSharedCompare] = useState(null); // resolved "vs" target
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const u = params.get("u");
+    if (u) {
+      resolveSharedUser(u).then(setSharedUser).catch(() => setSharedUser(null));
+    }
+  }, []);
+
+  // Curriculum (topics)
   const [curriculum, setCurriculum] = useState(DEFAULT_CURRICULUM);
   const [showAdmin, setShowAdmin] = useState(false);
-
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let cancelled = false;
@@ -291,53 +79,78 @@ export default function DeploymentTracker() {
   );
   const DSA_IDS = useMemo(() => new Set(PARALLEL_TRACK.items.map((i) => i.id)), [PARALLEL_TRACK]);
 
-  // --- progress (checked items + mission start date): per-account in Supabase,
-  // falls back to localStorage for guests / when Supabase isn't configured ---
+  // Progress state
   const [checked, setChecked] = useState({});
+  const [checkedAt, setCheckedAt] = useState({});
   const [startDate, setStartDate] = useState("");
   const [openPhase, setOpenPhase] = useState("p1");
   const [loaded, setLoaded] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error | offline
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [weeklyGoal, setWeeklyGoal] = useState(() => {
+    try {
+      return Number(localStorage.getItem("fde-tracker-goal")) || 5;
+    } catch {
+      return 5;
+    }
+  });
+  const prevLevel = useRef(0);
   const refs = useRef({});
 
-  // Load progress whenever the signed-in account changes (or once, for guests).
+  // Offline queue: pending mutations while Supabase is unreachable.
+  const pendingRef = useRef(false);
+
+  // Load
   useEffect(() => {
-    if (authConfigured && authLoading) return; // wait for session check first
+    if (authConfigured && authLoading) return;
     let cancelled = false;
     setLoaded(false);
 
     const loadGuest = () => {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (!cancelled) {
-            setChecked(parsed.checked || {});
-            setStartDate(parsed.startDate || "");
-          }
-        } else if (!cancelled) {
-          setChecked({});
-          setStartDate("");
+        const rawAt = localStorage.getItem(STORAGE_AT_KEY);
+        if (!cancelled) {
+          setChecked(raw ? JSON.parse(raw).checked || {} : {});
+          setStartDate(raw ? JSON.parse(raw).startDate || "" : "");
+          setCheckedAt(rawAt ? JSON.parse(rawAt) : {});
         }
       } catch (e) {
-        // no saved state yet, or storage unavailable
+        /* no saved state */
       }
     };
+
+    const applySnapshot = (c, at, sd) => {
+      if (cancelled) return;
+      setChecked(c || {});
+      setCheckedAt(at || {});
+      setStartDate(sd || "");
+    };
+
+    if (sharedUser) {
+      applySnapshot(sharedUser.checked, sharedUser.checkedAt, sharedUser.startDate);
+      setLoaded(true);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     if (user && supabase) {
       supabase
         .from("progress")
-        .select("checked, start_date")
+        .select("checked, checked_at, start_date, xp")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data, error }) => {
           if (cancelled) return;
           if (!error && data) {
-            setChecked(data.checked || {});
-            setStartDate(data.start_date || "");
+            applySnapshot(data.checked, data.checked_at, data.start_date);
           } else {
-            setChecked({});
-            setStartDate("");
+            applySnapshot({}, {}, "");
           }
         })
         .finally(() => !cancelled && setLoaded(true));
@@ -349,37 +162,102 @@ export default function DeploymentTracker() {
     return () => {
       cancelled = true;
     };
-  }, [user, authConfigured, authLoading]);
+  }, [user, authConfigured, authLoading, sharedUser]);
 
-  // Persist progress: to Supabase (per account) or localStorage (guest).
+  // Persist (with offline queue + visible save status)
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || sharedUser) return;
+    const xp = totalXp(checked, allItems);
 
     if (user && supabase) {
+      setSaveState("saving");
       const handle = setTimeout(() => {
         supabase
           .from("progress")
           .upsert({
             user_id: user.id,
             checked,
+            checked_at: checkedAt,
             start_date: startDate,
+            xp,
             updated_at: new Date().toISOString(),
           })
-          .then(({ error }) => setSaveError(Boolean(error)));
-      }, 500); // debounce writes while checking multiple boxes quickly
+          .then(({ error }) => {
+            if (error) {
+              pendingRef.current = true;
+              setSaveState("offline");
+            } else {
+              pendingRef.current = false;
+              setSaveState("saved");
+              setLastSavedAt(new Date());
+            }
+          })
+          .catch(() => {
+            pendingRef.current = true;
+            setSaveState("offline");
+          });
+      }, 600);
       return () => clearTimeout(handle);
     }
 
+    // Guest: localStorage
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ checked, startDate }));
-      setSaveError(false);
+      localStorage.setItem(STORAGE_AT_KEY, JSON.stringify(checkedAt));
+      setSaveState("saved");
+      setLastSavedAt(new Date());
     } catch (e) {
-      setSaveError(true);
+      setSaveState("error");
     }
-  }, [checked, startDate, loaded, user]);
+  }, [checked, checkedAt, startDate, loaded, user, sharedUser]);
 
-  const toggle = (id) => setChecked((c) => ({ ...c, [id]: !c[id] }));
+  // Flush offline queue when connection returns.
+  useEffect(() => {
+    if (!user || !supabase) return;
+    const onOnline = () => {
+      if (pendingRef.current) {
+        setSaveState("saving");
+        supabase
+          .from("progress")
+          .upsert({
+            user_id: user.id,
+            checked,
+            checked_at: checkedAt,
+            start_date: startDate,
+            xp: totalXp(checked, allItems),
+            updated_at: new Date().toISOString(),
+          })
+          .then(({ error }) => {
+            if (!error) {
+              pendingRef.current = false;
+              setSaveState("saved");
+              setLastSavedAt(new Date());
+            }
+          });
+      }
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [checked, checkedAt, startDate, user]);
 
+  const toggle = (id) => {
+    if (sharedUser) return;
+    const nowIso = new Date().toISOString();
+    setChecked((c) => {
+      const next = { ...c };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      return next;
+    });
+    setCheckedAt((prev) => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = nowIso;
+      return next;
+    });
+  };
+
+  // Derived stats
   const coreDone = useMemo(
     () => Object.keys(checked).filter((k) => checked[k] && CORE_IDS.has(k)).length,
     [checked]
@@ -395,6 +273,40 @@ export default function DeploymentTracker() {
   const dsaDone = Object.keys(checked).filter((k) => checked[k] && DSA_IDS.has(k)).length;
   const dsaTotal = PARALLEL_TRACK.items.length;
   const dsaPct = Math.round((dsaDone / dsaTotal) * 100);
+
+  const daySet = useMemo(() => daySetFromCheckedAt(checkedAt), [checkedAt]);
+  const streak = useMemo(() => currentStreak(daySet, 1), [daySet]); // grace day
+  const longest = useMemo(() => longestStreak(daySet), [daySet]);
+  const momentum = useMemo(() => momentumPercent(daySet), [daySet]);
+  const heatmap = useMemo(() => buildHeatmap(checkedAt), [checkedAt]);
+  const xp = useMemo(() => totalXp(checked, allItems), [checked]);
+  const lvl = useMemo(() => levelFromXp(xp), [xp]);
+
+  // Weekly goal: distinct days active in the trailing 7 days vs target.
+  const weeklyActive = useMemo(() => activeLast7(daySet), [daySet]);
+  const goalReached = weeklyActive >= weeklyGoal;
+  const { enabled: notifyEnabled, supported: notifySupported, enable: enableNotify } =
+    useNotifications(goalReached);
+
+  // Celebrate on level-up (compare to previous render).
+  useEffect(() => {
+    if (lvl.level > prevLevel.current && prevLevel.current !== 0) {
+      celebrate(`Level ${lvl.level} reached — ${xp} XP!`);
+    }
+    prevLevel.current = lvl.level;
+  }, [lvl.level, xp, celebrate]);
+
+  // Celebrate when a phase hits 100%.
+  const prevPhasePct = useRef({});
+  useEffect(() => {
+    for (const phase of ALL_PHASES) {
+      const p = phasePct(phase);
+      if (p === 100 && prevPhasePct.current[phase.id] !== 100) {
+        celebrate(`${phase.title} complete! 🏆`);
+      }
+      prevPhasePct.current[phase.id] = p;
+    }
+  }, [checked]);
 
   const dayInfo = useMemo(() => {
     if (!startDate) return null;
@@ -415,20 +327,187 @@ export default function DeploymentTracker() {
     refs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const onPaletteSelect = (item) => {
+    setPaletteOpen(false);
+    const phaseId = item.phaseId === "dsa" ? "dsa" : item.phaseId;
+    scrollTo(phaseId);
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "?" || e.key === "/")) {
+        e.preventDefault();
+        setShowShortcuts((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Import handler
+  const onImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = parseImport(reader.result);
+        if (!parsed) {
+          setImportError("Not a valid FDE progress file.");
+          return;
+        }
+        setChecked(parsed.checked);
+        setCheckedAt(parsed.checkedAt);
+        setStartDate(parsed.startDate);
+        setImportError("");
+      } catch {
+        setImportError("Could not parse file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const saveStatus = useMemo(() => {
+    if (sharedUser) return null;
+    if (saveState === "saving") return { text: "Saving…", cls: "text-slate-500" };
+    if (saveState === "offline") return { text: "Offline — changes saved locally, will sync", cls: "text-amber-400" };
+    if (saveState === "error") return { text: "Not saving — storage blocked", cls: "text-red-400" };
+    if (saveState === "saved" && lastSavedAt)
+      return { text: `Saved ✓ ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, cls: "text-emerald-400" };
+    return null;
+  }, [saveState, lastSavedAt, sharedUser]);
+
+  // ---- SHARED (read-only) view ----
+  if (sharedUser) {
+    const sCorePct = sharedUser.corePct || 0;
+    const sDsaPct = sharedUser.dsaPct || 0;
+    const sStreak = currentStreak(daySetFromCheckedAt(sharedUser.checkedAt || {}), 1);
+    const sHeatmap = buildHeatmap(sharedUser.checkedAt || {});
+    const myEnabled = !!(user || localStorage.getItem(STORAGE_KEY));
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+        <div className="max-w-4xl mx-auto px-5 py-10">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center">
+              {(sharedUser.username || sharedUser.displayName || "?").slice(0, 1).toUpperCase()}
+            </span>
+            <div>
+              <h1 className="text-2xl font-bold">{sharedUser.displayName || sharedUser.username}'s FDE Route</h1>
+              <p className="text-xs text-slate-500 font-mono uppercase tracking-widest">Read-only shared progress</p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-6 font-mono text-sm">
+            <span className="text-amber-400">{sCorePct}% core</span>
+            <span className="text-cyan-400">{sDsaPct}% DSA</span>
+            <span className="text-emerald-400">{sStreak}-day streak</span>
+            <span className="text-slate-400">{activeLast7(daySetFromCheckedAt(sharedUser.checkedAt || {}))}/7 active</span>
+            {myEnabled && (
+              <button
+                onClick={() => {
+                  const other = {
+                    corePct,
+                    dsaPct,
+                    streak,
+                    username: "you",
+                  };
+                  setSharedCompare(other);
+                }}
+                className="text-xs px-2 py-1 rounded border border-slate-700 text-slate-300 hover:border-slate-500"
+              >
+                Compare with me
+              </button>
+            )}
+          </div>
+          {sharedCompare && (
+            <div className="mt-3 grid grid-cols-3 gap-3 font-mono text-xs">
+              <div className="bg-slate-900 border border-slate-800 rounded p-2">
+                <div className="text-slate-500">Core %</div>
+                <div className="text-amber-400">{sCorePct} vs {sharedCompare.corePct}</div>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded p-2">
+                <div className="text-slate-500">DSA %</div>
+                <div className="text-cyan-400">{sDsaPct} vs {sharedCompare.dsaPct}</div>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 rounded p-2">
+                <div className="text-slate-500">Streak</div>
+                <div className="text-emerald-400">{sStreak} vs {sharedCompare.streak}</div>
+              </div>
+            </div>
+          )}
+          <div className="mt-6">
+            <ActivityHeatmap columns={sHeatmap} streak={sStreak} longest={longestStreak(daySetFromCheckedAt(sharedUser.checkedAt || {}))} readOnly />
+          </div>
+          <div className="mt-8 space-y-6">
+            {ALL_PHASES.map((phase) => {
+              const ids = phase.weeks.flatMap((w) => w.items.map((i) => i.id));
+              const done = ids.filter((id) => sharedUser.checked?.[id]).length;
+              const pct = ids.length ? Math.round((done / ids.length) * 100) : 0;
+              return (
+                <section key={phase.id}>
+                  <div className="flex items-baseline justify-between border-b border-slate-800 pb-3 mb-4">
+                    <h2 className="text-lg font-bold text-slate-50">{phase.title}</h2>
+                    <span className="font-mono text-slate-400">{pct}%</span>
+                  </div>
+                  <div className="space-y-2">
+                    {phase.weeks.flatMap((w) => w.items).map((item) => (
+                      <div key={item.id} className="flex items-start gap-3">
+                        <span className={`mt-1 w-3 h-3 rounded-sm flex-shrink-0 ${sharedUser.checked?.[item.id] ? "bg-amber-500" : "bg-slate-800"}`} />
+                        <p className={`text-sm ${sharedUser.checked?.[item.id] ? "text-slate-500 line-through" : "text-slate-300"}`}>{item.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+          <p className="mt-10 text-center text-xs text-slate-600 font-mono">
+            This is a read-only view · build your own at this app
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- MAIN app ----
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
-      {showAdmin && <AdminPanel defaultCurriculum={DEFAULT_CURRICULUM} onClose={() => setShowAdmin(false)} />}
-      {/* MISSION HEADER */}
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[500] focus:bg-amber-500 focus:text-slate-950 focus:px-3 focus:py-1 focus:rounded">Skip to content</a>
+      {showAdmin && (
+        <React.Suspense fallback={null}>
+          <AdminPanel defaultCurriculum={DEFAULT_CURRICULUM} onClose={() => setShowAdmin(false)} />
+        </React.Suspense>
+      )}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        items={allItems}
+        checked={checked}
+        onSelect={onPaletteSelect}
+      />
+      <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <div className="border-b border-slate-800 sticky top-0 bg-slate-950/95 backdrop-blur z-10">
         <div className="max-w-4xl mx-auto px-5 py-5">
           <div className="flex items-baseline justify-between flex-wrap gap-3">
             <div>
               <p className="font-mono text-xs tracking-[0.2em] text-amber-400 uppercase">Deployment Log</p>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-50">FDE Readiness \u2014 90 Day Route</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-50">FDE Readiness — 90 Day Route</h1>
             </div>
             <div className="flex items-center gap-5">
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="text-slate-400 hover:text-slate-200 text-sm font-mono"
+                title="Toggle theme"
+                aria-label="Toggle color theme"
+              >
+                {theme === "dark" ? "☀" : "☾"}
+              </button>
               <AccountBar onOpenAdmin={() => setShowAdmin(true)} />
-              <div className="text-right">
+              <div className="text-right" title="Percentage of the 5-phase core route you've checked off">
                 <div className="font-mono text-3xl font-bold text-amber-400 tabular-nums">{corePct}%</div>
                 <div className="text-xs text-slate-500 uppercase tracking-wide">core route complete</div>
               </div>
@@ -437,13 +516,19 @@ export default function DeploymentTracker() {
 
           {/* progress bar */}
           <div className="mt-4 h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
-            <div
-              className="h-full bg-amber-500 transition-all duration-500"
-              style={{ width: `${corePct}%` }}
-            />
+            <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${corePct}%` }} />
           </div>
 
-          {/* day counter */}
+          {/* gamification bar */}
+          <div className="mt-2 flex items-center gap-3 font-mono text-xs">
+            <span className="text-fuchsia-400">LVL {lvl.level}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-slate-900 overflow-hidden">
+              <div className="h-full bg-fuchsia-500" style={{ width: `${lvl.pct}%` }} />
+            </div>
+            <span className="text-slate-500">{xp} XP</span>
+          </div>
+
+          {/* day counter + save status + tools */}
           <div className="mt-4 flex items-center gap-4 flex-wrap font-mono text-xs">
             <label className="flex items-center gap-2 text-slate-400">
               MISSION START:
@@ -460,11 +545,19 @@ export default function DeploymentTracker() {
                 <span className="text-slate-500">{dayInfo.remaining} days remaining</span>
               </>
             )}
-            {saveError && <span className="text-red-400">progress not saving \u2014 browser storage may be disabled</span>}
+            {saveStatus && <span className={saveStatus.cls}>{saveStatus.text}</span>}
+            <span className="text-emerald-400 ml-auto">{momentum}% weekly momentum</span>
+            <button onClick={() => exportProgress({ startDate, checked, checkedAt })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">Export</button>
+            <button onClick={() => exportCsv({ checked, checkedAt, itemsById })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">CSV</button>
+            <label className="text-slate-400 hover:text-slate-200 underline underline-offset-2 cursor-pointer">
+              Import
+              <input type="file" accept="application/json" onChange={onImport} className="hidden" />
+            </label>
           </div>
+          {importError && <p className="mt-1 text-xs text-red-400 font-mono">{importError}</p>}
         </div>
 
-        {/* DEPLOYMENT ROUTE (signature element) */}
+        {/* DEPLOYMENT ROUTE */}
         <div className="max-w-4xl mx-auto px-5 pb-5 overflow-x-auto">
           <div className="flex items-center min-w-[600px]">
             {ALL_PHASES.map((phase, idx) => {
@@ -473,19 +566,12 @@ export default function DeploymentTracker() {
               const isOpen = openPhase === phase.id;
               return (
                 <React.Fragment key={phase.id}>
-                  <button
-                    onClick={() => scrollTo(phase.id)}
-                    className="flex flex-col items-center gap-2 group flex-shrink-0"
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-colors
-                        ${complete ? "bg-amber-500 border-amber-500 text-slate-950" : isOpen ? "border-cyan-400 text-cyan-400" : "border-slate-700 text-slate-500 group-hover:border-slate-500"}`}
-                    >
+                  <button onClick={() => scrollTo(phase.id)} className="flex flex-col items-center gap-2 group flex-shrink-0">
+                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-colors
+                      ${complete ? "bg-amber-500 border-amber-500 text-slate-950" : isOpen ? "border-cyan-400 text-cyan-400" : "border-slate-700 text-slate-500 group-hover:border-slate-500"}`}>
                       {phase.code}
                     </div>
-                    <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-cyan-400" : "text-slate-500"}`}>
-                      {phase.title}
-                    </span>
+                    <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-cyan-400" : "text-slate-500"}`}>{phase.title}</span>
                   </button>
                   {idx < ALL_PHASES.length - 1 && (
                     <div className={`flex-1 h-px mb-6 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-amber-500" : "bg-slate-800"}`} />
@@ -497,7 +583,72 @@ export default function DeploymentTracker() {
         </div>
       </div>
 
-      {/* PARALLEL TRACK: DSA & Competitive Programming */}
+      {/* FOCUS + INSIGHTS + HEATMAP */}
+      <div id="main" className="max-w-4xl mx-auto px-5 pt-8 space-y-6">
+        <FocusView PHASES={PHASES} BONUS={BONUS} checked={checked} startDate={startDate} onToggle={toggle} onJump={scrollTo} />
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs text-slate-500 font-mono">Weekly goal:</span>
+          <input
+            type="number"
+            min="1"
+            max="7"
+            value={weeklyGoal}
+            onChange={(e) => {
+              const v = Math.max(1, Math.min(7, Number(e.target.value) || 1));
+              setWeeklyGoal(v);
+              try { localStorage.setItem("fde-tracker-goal", String(v)); } catch {}
+            }}
+            className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100"
+            aria-label="Weekly active-day goal"
+          />
+          <span className="text-xs text-slate-500">active days / week</span>
+          <span className={`text-xs font-mono ${goalReached ? "text-emerald-400" : "text-amber-400"}`}>
+            {weeklyActive}/{weeklyGoal} {goalReached ? "✓" : ""}
+          </span>
+          {notifySupported && (
+            <button
+              onClick={async () => {
+                const ok = await enableNotify();
+                notify(ok ? "Reminders enabled" : "Notifications blocked by browser", { kind: ok ? "info" : "error" });
+              }}
+              className="text-xs px-2 py-1 rounded border border-slate-700 text-slate-300 hover:border-slate-500"
+            >
+              {notifyEnabled ? "Reminders on" : "Enable reminders"}
+            </button>
+          )}
+        </div>
+
+        <Insights
+          coreDone={coreDone}
+          coreTotal={coreTotal}
+          dsaDone={dsaDone}
+          dsaTotal={dsaTotal}
+          bonusDone={bonusDone}
+          bonusTotal={bonusTotal}
+          daySet={daySet}
+          dayInfo={dayInfo}
+          xp={xp}
+          lvl={lvl}
+          startDate={startDate}
+        />
+
+        <ActivityHeatmap columns={heatmap} streak={streak} longest={longest} onShare={() => setShowShare(true)} />
+        <React.Suspense fallback={null}>
+          <SharePanelLazy
+            open={showShare}
+            onClose={() => setShowShare(false)}
+            user={user}
+            checked={checked}
+            checkedAt={checkedAt}
+            corePct={corePct}
+            dsaPct={dsaPct}
+            xp={xp}
+          />
+        </React.Suspense>
+      </div>
+
+      {/* PARALLEL TRACK */}
       <div className="max-w-4xl mx-auto px-5 pt-8">
         <div className="bg-slate-900/60 border border-cyan-900/50 rounded-lg p-4">
           <div className="flex items-baseline justify-between mb-1">
@@ -513,27 +664,21 @@ export default function DeploymentTracker() {
               <li key={item.id} className="flex items-start gap-3">
                 <button
                   onClick={() => toggle(item.id)}
+                  aria-label={checked[item.id] ? `Uncheck ${item.text}` : `Check ${item.text}`}
+                  aria-pressed={checked[item.id] || false}
                   className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors
                     ${checked[item.id] ? "bg-cyan-500 border-cyan-500" : "border-slate-600 hover:border-slate-400"}`}
                 >
                   {checked[item.id] && (
-                    <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950">
-                      <path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" />
-                    </svg>
+                    <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : "text-slate-200"}`}>
-                    {item.text}
-                  </p>
+                  <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : "text-slate-200"}`}>{item.text}</p>
                   {item.resource && (
-                    <a
-                      href={item.resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block mt-1 text-xs font-mono text-amber-400 hover:text-amber-300 underline underline-offset-2"
-                    >
-                      {item.resource.label} \u2192
+                    <a href={item.resource.url} target="_blank" rel="noopener noreferrer"
+                      className="inline-block mt-1 text-xs font-mono text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
+                      {item.resource.label} →
                     </a>
                   )}
                 </div>
@@ -546,7 +691,7 @@ export default function DeploymentTracker() {
       {/* PHASE SECTIONS */}
       <div className="max-w-4xl mx-auto px-5 py-8 space-y-14">
         {ALL_PHASES.map((phase) => (
-          <section key={phase.id} ref={(el) => (refs.current[phase.id] = el)}>
+          <section key={phase.id} ref={(el) => (refs.current[phase.id] = el)} data-testid="phase-section" data-phase-id={phase.id}>
             <div className="flex items-baseline justify-between border-b border-slate-800 pb-3 mb-6">
               <div>
                 <p className="font-mono text-xs text-amber-400 tracking-widest">{phase.code}</p>
@@ -555,14 +700,11 @@ export default function DeploymentTracker() {
               </div>
               <div className="font-mono text-lg text-slate-400 tabular-nums">{phasePct(phase)}%</div>
             </div>
-
             <div className="space-y-6">
               {phase.weeks.map((w) => (
                 <div key={String(phase.id) + w.week} className="bg-slate-900/60 border border-slate-800 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="font-mono text-xs bg-slate-800 text-cyan-400 px-2 py-0.5 rounded">
-                      WEEK {w.week}
-                    </span>
+                    <span className="font-mono text-xs bg-slate-800 text-cyan-400 px-2 py-0.5 rounded">WEEK {w.week}</span>
                     <h3 className="text-sm font-semibold text-slate-200">{w.title}</h3>
                   </div>
                   <ul className="space-y-2">
@@ -570,27 +712,21 @@ export default function DeploymentTracker() {
                       <li key={item.id} className="flex items-start gap-3">
                         <button
                           onClick={() => toggle(item.id)}
+                          aria-label={checked[item.id] ? `Uncheck ${item.text}` : `Check ${item.text}`}
+                          aria-pressed={checked[item.id] || false}
                           className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors
                             ${checked[item.id] ? "bg-amber-500 border-amber-500" : "border-slate-600 hover:border-slate-400"}`}
                         >
                           {checked[item.id] && (
-                            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950">
-                              <path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" />
-                            </svg>
+                            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : "text-slate-200"}`}>
-                            {item.text}
-                          </p>
+                          <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : "text-slate-200"}`}>{item.text}</p>
                           {item.resource && (
-                            <a
-                              href={item.resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block mt-1 text-xs font-mono text-cyan-400 hover:text-cyan-300 underline underline-offset-2"
-                            >
-                              {item.resource.label} \u2192
+                            <a href={item.resource.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-block mt-1 text-xs font-mono text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
+                              {item.resource.label} →
                             </a>
                           )}
                         </div>
@@ -603,8 +739,15 @@ export default function DeploymentTracker() {
           </section>
         ))}
 
+        {/* onboarding nudge if no mission start set */}
+        {!startDate && (
+          <div className="bg-amber-500/10 border border-amber-600/40 rounded-lg p-4 text-center">
+            <p className="text-sm text-amber-300">Set your <span className="font-mono">MISSION START</span> date above to track your 90-day countdown and daily streak.</p>
+          </div>
+        )}
+
         <div className="text-center text-xs text-slate-600 font-mono pt-6 border-t border-slate-800">
-          {coreDone}/{coreTotal} core items \u00b7 {dsaDone}/{dsaTotal} DSA problems \u00b7 {bonusDone}/{bonusTotal} staff-level items \u00b7 progress saved automatically
+          {coreDone}/{coreTotal} core · {dsaDone}/{dsaTotal} DSA · {bonusDone}/{bonusTotal} staff · LVL {lvl.level} · {xp} XP · press ⌘K to jump to any item
         </div>
       </div>
     </div>

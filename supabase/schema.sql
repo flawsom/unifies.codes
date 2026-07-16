@@ -1,128 +1,72 @@
 -- ============================================================================
--- FDE Deployment Tracker — Supabase schema
--- Run this once in your Supabase project's SQL editor (or via `supabase db push`).
+-- FDE Tracker — Supabase schema (free & open source; live data only)
+-- Run this in the Supabase SQL editor:
+--   https://smggxiugcqwfjqtynlnc.supabase.co → Project → SQL → New query → paste & run
+--
+-- Tables:
+--   profiles   — one row per auth user; carries the public share handle + live snapshot
+--   progress   — per-user check-in state (checked map, timestamps, XP, mission start)
+--   curriculum — optional live-editable roadmap (admin panel seed)
+--
+-- All reads/writes go through the anon key + Row Level Security. No service-role
+-- key is ever shipped to the browser. No demo/seed rows are inserted.
 -- ============================================================================
 
--- ---------------------------------------------------------------------------
--- profiles: one row per account, auto-created when someone signs in
--- ---------------------------------------------------------------------------
+-- 1) profiles: single source for identity + public share. `username` is the
+--    public, unique handle used in `?u=<username>` links.
 create table if not exists public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
-  email text not null,
+  id           uuid primary key references auth.users (id) on delete cascade,
+  username     text unique,
   display_name text,
-  is_admin boolean not null default false,
-  created_at timestamptz not null default now()
+  email        text,
+  is_admin     boolean not null default false,
+  snapshot     jsonb not null default '{}'::jsonb,  -- { checked, checkedAt, corePct, dsaPct, xp }
+  created_at   timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;
 
--- Everyone can read their own profile; admins can read all profiles.
-create policy "profiles_select_own_or_admin"
-  on public.profiles for select
-  using (
-    auth.uid() = id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+drop policy if exists "profiles:public_read" on public.profiles;
+create policy "profiles:public_read" on public.profiles
+  for select using (true);
 
--- Only admins can update profiles (e.g. to grant/revoke admin).
-create policy "profiles_update_admin_only"
-  on public.profiles for update
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+drop policy if exists "profiles:owner_write" on public.profiles;
+create policy "profiles:owner_write" on public.profiles
+  for all
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
--- Auto-create a profile row whenever a new auth user signs up (e.g. via Google OAuth).
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email, display_name)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', new.email)
-  )
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-
--- ---------------------------------------------------------------------------
--- curriculum: a single editable row holding the whole topic tree (phases,
--- bonus track, DSA parallel track) as JSON. Readable by everyone (including
--- guests), writable only by admins.
--- ---------------------------------------------------------------------------
-create table if not exists public.curriculum (
-  id int primary key default 1,
-  data jsonb not null,
-  updated_at timestamptz not null default now(),
-  constraint curriculum_singleton check (id = 1)
-);
-
-alter table public.curriculum enable row level security;
-
-create policy "curriculum_select_anyone"
-  on public.curriculum for select
-  using (true);
-
-create policy "curriculum_upsert_admin_only"
-  on public.curriculum for insert
-  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
-
-create policy "curriculum_update_admin_only"
-  on public.curriculum for update
-  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
-
--- ---------------------------------------------------------------------------
--- progress: one row per account holding their checked items + mission start date.
--- ---------------------------------------------------------------------------
+-- 2) progress: per-user check-in state. One row per user.
 create table if not exists public.progress (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  checked jsonb not null default '{}'::jsonb,
-  start_date text default '',
-  updated_at timestamptz not null default now()
+  user_id       uuid primary key references auth.users (id) on delete cascade,
+  checked       jsonb not null default '{}'::jsonb,
+  checked_at    jsonb not null default '{}'::jsonb,
+  start_date    text,
+  xp            integer not null default 0,
+  updated_at    timestamptz not null default now()
 );
 
 alter table public.progress enable row level security;
 
-create policy "progress_select_own_or_admin"
-  on public.progress for select
-  using (
-    auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+drop policy if exists "progress:own_row" on public.progress;
+create policy "progress:own_row" on public.progress
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
-create policy "progress_insert_own_or_admin"
-  on public.progress for insert
-  with check (
-    auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+-- 3) curriculum: optional live-editable roadmap (admin panel seed).
+create table if not exists public.curriculum (
+  id   int primary key,
+  data jsonb not null
+);
 
-create policy "progress_update_own_or_admin"
-  on public.progress for update
-  using (
-    auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+alter table public.curriculum enable row level security;
 
-create policy "progress_delete_own_or_admin"
-  on public.progress for delete
-  using (
-    auth.uid() = user_id
-    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
-  );
+drop policy if exists "curriculum:public_read" on public.curriculum;
+create policy "curriculum:public_read" on public.curriculum
+  for select using (true);
 
--- ---------------------------------------------------------------------------
--- After running this file:
--- 1. Sign in to the app once with the Google account you want as the admin.
--- 2. In the SQL editor, run:
---      update public.profiles set is_admin = true where email = 'you@example.com';
--- 3. (Optional) Seed the curriculum row with the app's bundled default the
---    first time you open the Admin Panel → Topics tab → "Save curriculum".
--- ============================================================================
+-- 4) Grant anon/authenticated the minimal privileges the app needs.
+grant select, insert, update, delete on public.profiles to anon, authenticated;
+grant select, insert, update, delete on public.progress to anon, authenticated;
+grant select on public.curriculum to anon, authenticated;

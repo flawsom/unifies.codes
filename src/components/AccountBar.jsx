@@ -17,7 +17,7 @@ export default function AccountBar({ onOpenAdmin }) {
   if (!authConfigured) {
     return (
       <span
-        className="hidden sm:inline text-[11px] text-slate-500 font-mono max-w-[200px] text-right leading-tight"
+        className="text-[11px] text-slate-500 font-mono max-w-[220px] text-right leading-tight"
         title="Set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY on your host and redeploy to enable sign-in."
       >
         Guest mode — saved on this device. Add Supabase keys to enable sign-in & sync.
@@ -29,7 +29,7 @@ export default function AccountBar({ onOpenAdmin }) {
   if (!user) {
     return (
       <div className="flex items-center gap-3">
-        <button onClick={signInWithGoogle} className="btn btn-secondary btn-sm" data-testid="signin-btn">
+        <button onClick={signInWithGoogle} className="btn" data-testid="signin-btn">
           Sign in with Google
         </button>
         <span className="hidden md:inline text-[11px] text-slate-500 max-w-[190px] leading-tight">

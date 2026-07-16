@@ -655,7 +655,7 @@ export default function DeploymentTracker() {
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="btn-secondary text-sm px-3 py-1 font-mono"
+                className="theme-toggle"
                 title="Toggle theme"
                 aria-label="Toggle color theme"
               >

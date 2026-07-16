@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
  * RawBlock styling: thick border, full inversion on hover, clear copy.
  */
 export default function GuestBanner() {
-  const { user, authConfigured, signInWithGoogle } = useAuth();
+  const { user, isSupabaseConfigured, signInWithGoogle } = useAuth();
   if (user) return null; // only for guests
 
   return (

@@ -11,10 +11,10 @@ import { useAuth } from "../context/AuthContext";
  *  - configured, logged in   -> identity + Sign out (Admin button if admin)
  */
 export default function AccountBar({ onOpenAdmin }) {
-  const { user, profile, authConfigured, signInWithGoogle, signOut, authError } = useAuth();
+  const { user, profile, isSupabaseConfigured, signInWithGoogle, signOut, authError } = useAuth();
 
   // --- Guest mode: Supabase keys aren't set on the host, so no login is possible.
-  if (!authConfigured) {
+  if (!isSupabaseConfigured) {
     return (
       <span
         className="text-[11px] text-slate-500 font-mono max-w-[220px] text-right leading-tight"

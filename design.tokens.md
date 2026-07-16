@@ -1,92 +1,100 @@
-# Unifies — Design Tokens (machine reference)
+# Unifies — Design Tokens (Reference)
 
-> Compact, copy-paste token reference for Unifies' RawBlock v2 system.
-> Canonical narrative spec: [`design.md`](./design.md).
+> A compact, token-first companion to the full [`design.md`](./design.md) narrative spec.
 > Publish / sync these to designmd.ai via the `designmd` MCP server.
 
-## CSS custom properties
+This reference documents the **RawBlock v2** token layer for Unifies as plain prose and
+tables, so it can be consumed both by humans and by tooling. All values are space-
+separated RGB channels, which lets Tailwind opacity modifiers (such as `/60`) and
+`rgb(var(--token) / <alpha>)` both work without extra configuration.
 
-Implemented in `src/index.css` (`@layer base`). Channels are space-separated RGB
-so Tailwind opacity modifiers (`/60`) and `rgb(var(--token) / <alpha>)` work.
+## Color tokens
 
-```css
-:root {                 /* LIGHT (default) */
-  --bg: 246 247 249;
-  --surface: 255 255 255;
-  --elevated: 255 255 255;
-  --fg: 10 10 12;
-  --muted: 84 86 92;
-  --faint: 138 141 148;
-  --line: 216 219 224;
-  --accent: 17 17 17;          /* monochrome ink */
-  --accent-fg: 255 255 255;
-  --success: 17 163 107;
-  --danger: 224 36 36;
-  --warn: 194 130 10;
-  --shadow-hard-x: 4px;
-  --shadow-hard-y: 4px;
-  --shadow-hard-color: rgb(10 10 12 / 0.9);
-  --shadow-hard: 4px 4px 0 0 rgb(10 10 12 / 0.9);
-}
-html.dark {             /* DARK (full inversion) */
-  --bg: 10 10 12;
-  --surface: 22 23 27;
-  --elevated: 30 31 37;
-  --fg: 244 244 245;
-  --muted: 162 165 173;
-  --faint: 108 111 119;
-  --line: 43 45 51;
-  --accent: 244 244 245;       /* monochrome paper */
-  --accent-fg: 10 10 12;
-  --success: 47 191 126;
-  --danger: 255 90 90;
-  --warn: 224 169 58;
-  --shadow-hard-color: rgb(244 244 245 / 0.5);
-  --shadow-hard: 4px 4px 0 0 rgb(244 244 245 / 0.5);
-}
-```
+Color is expressed through CSS custom properties. **Light is the default** (the `:root`
+block); **Dark is a full inversion** applied under the `html.dark` class. There is no
+third theme.
 
-## Tailwind token utilities (mapped in `tailwind.config.js`)
+| Token             | Light                | Dark                 | Role                                |
+| ----------------- | -------------------- | -------------------- | ----------------------------------- |
+| `--bg`            | `#f6f7f9`           | `#0a0a0c`           | Page canvas                         |
+| `--surface`       | `#ffffff`           | `#16171b`           | Cards, panels, inputs              |
+| `--elevated`      | `#ffffff`           | `#1e1f25`           | Popovers, sticky bars              |
+| `--fg`            | `#0a0a0c`          | `#f4f5f7`           | Primary text and primary fills     |
+| `--muted`         | `#54565c`           | `#a2a5ad`           | Secondary and helper text           |
+| `--faint`         | `#8a8d94`           | `#6c6f77`           | Tertiary and meta text             |
+| `--line`          | `#d8dbe0`           | `#2b2d33`           | All borders and dividers           |
+| `--accent`        | `#111111` (ink)     | `#f4f5f7` (paper)   | **Monochrome brand accent**        |
+| `--accent-fg`     | `#ffffff`           | `#0a0a0c`           | Text and icons placed on `--accent`|
+| `--success`        | `#11a36b`           | `#2fbf7e`           | Completed, XP, "done"             |
+| `--danger`        | `#e02424`           | `#ff5a5a`           | Errors, destructive, delete        |
+| `--warn`          | `#c2820a`           | `#e0a93a`           | Cautions, skips, celebrate        |
 
-| Utility            | Token        | Notes                              |
-| ------------------ | ------------ | ---------------------------------- |
-| `bg-bg` `text-bg` | `--bg`       | page canvas                       |
-| `bg-surface`       | `--surface`  | cards / panels / inputs           |
-| `bg-elevated`      | `--elevated` | popovers / sticky bars            |
-| `text-fg` `bg-fg` | `--fg`       | primary text / primary fills      |
-| `text-muted`       | `--muted`    | secondary text                    |
-| `text-faint`       | `--faint`    | tertiary / meta text              |
-| `border-line`      | `--line`     | all borders & dividers            |
-| `bg-accent` `text-accent` `border-accent` | `--accent` | monochrome brand |
-| `text-accent-fg` `bg-accent-fg` | `--accent-fg` | on-accent text/fill |
-| `text-success` `bg-success` | `--success` | done / XP               |
-| `text-danger` `bg-danger` | `--danger` | error / destructive        |
-| `text-warn` `bg-warn` | `--warn` | caution / skip / celebrate    |
-| `shadow-hard`      | `--shadow-hard` | hard offset shadow              |
-| `font-display`     | Space Grotesk | headings / impact numbers         |
-| `font-mono`        | JetBrains Mono | codes / dates / XP               |
-| `font-sans`        | Inter        | body (default)                   |
+The accent is intentionally **monochrome** — ink in light, paper in dark — and carries
+no brand hue. Blue, cyan, fuchsia and similar colors are never used as brand color; the
+only non-neutral colors are the three semantic status tokens above. The legacy Tailwind
+palette (`slate`, `cyan`, `fuchsia`, `emerald`, `red`, `amber`, `black`, `white`) is
+remapped onto these tokens in CSS so historical components conform automatically in both
+themes.
 
-## Component classes (in `src/index.css`)
+## Shadow tokens
 
-`raw-card` · `raw-btn` · `raw-btn-accent` · `raw-input` · `raw-label` · `raw-stat` ·
-`raw-tag` · `raw-chip` · `raw-chip-on` · `raw-check` · `raw-theme-toggle` ·
-`list-row` · `tooltip` · `toast` · `toast-error` · `fab` · `safe-t` · `safe-b` ·
-`scrollbar-stable`
+RawBlock uses **hard offset shadows only** — never soft elevation. The shadow is a
+structural device that reads as physical depth.
 
-Legacy aliases (auto-remap old Tailwind palette → tokens, both themes):
-`card` · `btn` · `input` · `label` · `chip` · `chip-on` · `helper` · `link` ·
-`modal` · `overlay`
+| Token                | Light                       | Dark                        |
+| -------------------- | --------------------------- | --------------------------- |
+| `--shadow-hard-x`    | `4px`                      | `4px`                      |
+| `--shadow-hard-y`    | `4px`                      | `4px`                      |
+| `--shadow-hard-color`| `rgb(10 10 12 / 0.9)`     | `rgb(244 244 245 / 0.5)`  |
 
-## Keyframes
+On hover, an element lifts by `-1px, -1px` and the shadow grows; on active it collapses
+to `0 0` to mimic a physical press.
 
-`fade-in` · `pop` · `pop-in` · `slide-up` · `flash` — all disabled under
-`prefers-reduced-motion`.
+## Typography tokens
+
+Three families cover every role. Space Grotesk is the display and heading face; Inter is
+the body face (and the framework default); JetBrains Mono is reserved for machine-readable
+values such as dates, identifiers, keys and XP.
+
+| Role    | Family         | Tailwind utility | Weights            |
+| ------- | -------------- | ---------------- | ------------------ |
+| Display | Space Grotesk | `font-display`  | 600 / 700          |
+| Heading | Space Grotesk | `font-display`  | 600 / 700          |
+| Body    | Inter         | `font-sans`      | 400 / 500 / 600    |
+| Mono    | JetBrains Mono | `font-mono`      | 400 / 500 / 700    |
+
+Type scales fluidly from mobile to desktop: the page title runs 36px → 56px, section
+titles 26px → 34px, and body text 15px → 16px. Headlines are set uppercase with tight
+tracking for impact.
+
+## Component class tokens
+
+Implemented in `src/index.css`. The `raw-*` set is the canonical, token-driven library:
+`raw-card`, `raw-btn`, `raw-btn-accent`, `raw-input`, `raw-label`, `raw-stat`, `raw-tag`,
+`raw-chip`, `raw-chip-on`, `raw-check`, `raw-theme-toggle`, `list-row`, `tooltip`,
+`toast`, `toast-error`, `fab`, `safe-t`, `safe-b`, `scrollbar-stable`.
+
+Legacy aliases — `card`, `btn`, `input`, `label`, `chip`, `chip-on`, `helper`, `link`,
+`modal`, `overlay` — are kept so older components stay styled without rewriting. Every
+legacy class derives its values from the token set, so both themes stay in sync.
+
+## Motion tokens
+
+Five keyframes drive all motion: `fade-in` (panel and section entrances), `pop`
+(toasts, modals, created rows), `pop-in` (tooltips and small surfaces), `slide-up`
+(staggered list rows and highlights), and `flash` (recently touched heatmap cells).
+Everything honors `prefers-reduced-motion`, which fully disables non-essential animation
+rather than merely slowing it.
 
 ## Hard rules
 
-1. Accent is **monochrome** (ink ↔ paper). No brand hue.
-2. **Radius 0** everywhere (FAB circle is the only exception).
-3. **No soft shadows** — only the hard offset `--shadow-hard`.
-4. Dark mode is a **full token inversion**; no third theme.
-5. New code uses `raw-*` + token utilities; never hand-roll colors.
+1. The accent is monochrome (ink ↔ paper). No brand hue.
+2. Every corner is square — `border-radius: 0` is enforced globally; the mobile FAB
+   circle is the only deliberate exception.
+3. No soft shadows; only the hard offset `--shadow-hard`.
+4. Dark mode is a complete token inversion; no third theme exists.
+5. New code uses the `raw-*` classes and token utilities — colors are never hand-rolled.
+
+The token layer lives in `@layer base` (custom properties), `@layer components`
+(`raw-*` and legacy aliases), and `@layer utilities` (helpers and the theme-alias map).
+Theme is a runtime class toggle, so switching is instant and total.

@@ -1,25 +1,18 @@
 name: CI
 
+# Unifies is hosted on Vercel/Netlify (not GitHub Pages), so this pipeline only
+# verifies the app: unit tests + coverage, Playwright E2E, and a production build.
+# Your host imports this repo and deploys the `dist/` output itself.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
-    # The workflow-level `contents: read` makes the token read-only; override it
-    # here so this job can push the regenerated README status back to main.
+    # Allow this job to push the regenerated README status back to main.
     permissions:
       contents: write
     steps:
@@ -29,7 +22,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -65,7 +58,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -100,7 +93,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -118,30 +111,3 @@ jobs:
           name: dist
           path: dist
           retention-days: 7
-
-  # Deploy to GitHub Pages — only on pushes to main, after tests pass.
-  deploy:
-    needs: [test, e2e, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4

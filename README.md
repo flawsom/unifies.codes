@@ -376,26 +376,28 @@ This is the zero-cost, zero-config path and is perfectly fine for a portfolio de
 ## Continuous Integration & Deployment
 
 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs on every push/PR to
-`main`:
+`main` and only **verifies** the app (it does not deploy — your host does):
 
 - **test** — runs `npm run test:coverage` (Vitest + coverage) and commits the
   regenerated README status block back to `main` with `[skip ci]`.
 - **e2e** — installs Playwright browsers and runs the Playwright suite against
-  `npm run preview`.
+  a production build.
 - **build** — `npm run build` and uploads `dist/` as an artifact.
-- **deploy** — only on push to `main` (not PRs), publishes `dist/` to **GitHub
-  Pages** under `https://<user>.github.io/<repo>/`.
+
+**Deployment is done by Vercel/Netlify**, not CI: connect the repo in their
+dashboard (or use their CLIs) and they build + deploy `dist/` on every push to
+`main`. No `deploy` job is needed, so there's no vendor lock-in and no GitHub
+Pages requirement.
 
 **Optional CI secrets** (Settings → Secrets and variables → Actions):
-`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. If set, CI builds against a real
-project; if absent, the build still succeeds (guest mode). CI **never** receives
-the service-role key.
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (and on the host,
+`OPENROUTER_API_KEY`). If set, CI builds against a real project; if absent, the
+build still succeeds (guest mode). CI **never** receives the service-role key.
 
-> **Want Vercel/Netlify to deploy on push instead of GitHub Pages?** Either
-> connect the repo in their dashboard (they auto-build on push), or replace the
-> `deploy` job in `ci.yml` with a provider-specific action (e.g.
-> `amondnet/vercel-action` or `nwtgck/actions-netlify`). The current file targets
-> GitHub Pages so there's no vendor lock-in.
+> **Why no GitHub Pages job?** Unifies is hosted on Vercel/Netlify. The Pages
+> `deploy` job was removed because it required GitHub Pages to be enabled and
+> added no value for this hosting setup. The `dist/` artifact from the `build`
+> job is what your host consumes.
 
 ### Project Structure
 
@@ -458,9 +460,5 @@ npm run e2e                       # run against a production preview build
 - **test** — Vitest unit suite **with coverage** (report uploaded as an artifact)
 - **e2e** — Playwright suite against a production preview build
 - **build** — produces the deployable `dist/` artifact
-- **deploy** — on pushes to `main` only, publishes `dist/` to **GitHub Pages** automatically
 
-So a broken build or a regressed command palette fails CI before it reaches `main`, and a green `main` ships to the live site on its own.
-
-### Enable GitHub Pages (one time)
-Repo **Settings → Pages → Build and deployment → Source: "GitHub Actions"**. The `deploy` job handles the rest. Note: the SPA fallback (`dist/404.html`) is generated automatically by the `postbuild` script so `?u=` share links and deep links work.
+So a broken build or a regressed command palette fails CI before it reaches `main`. Deployment to the live site is handled by Vercel/Netlify when you connect the repo (see the deploy section above).

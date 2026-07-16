@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 // Resolve Supabase config at runtime BEFORE any module reads it.
 async function bootstrap() {
   try {
-    const res = await fetch("/api/runtime-config", { headers: { accept: "application/json" } });
+    const res = await fetch("/api/analyze", { headers: { accept: "application/json" } });
     if (res.ok) {
       const d = await res.json();
       if (d && d.url && d.key) {

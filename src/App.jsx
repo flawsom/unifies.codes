@@ -409,6 +409,18 @@ export default function DeploymentTracker() {
   const dsaTotal = dsaIds.size;
   const dsaPct = dsaTotal ? Math.round((dsaDone / dsaTotal) * 100) : 0;
 
+  const domainLabel = curriculum._meta?.domain?.label || "your subject";
+  const tracks = [
+    { label: domainLabel + " — core route", value: coreDone, total: coreTotal, colorClass: "bg-accent" },
+    dsaTotal > 0
+      ? { label: curriculum.parallelTrack?.title || "Practice track", value: dsaDone, total: dsaTotal, colorClass: "bg-success" }
+      : null,
+    bonusTotal > 0
+      ? { label: curriculum.bonus?.title || "Beyond mastery", value: bonusDone, total: bonusTotal, colorClass: "bg-warn" }
+      : null,
+  ].filter(Boolean);
+  const overflowInfo = curriculum._meta?.overflow || { overflow: false, message: "" };
+
   const overallTotal = activeItems.length;
   const overallDone = Object.keys(checked).filter((k) => checked[k] && itemsById[k]).length;
   const overallPct = overallTotal ? Math.round((overallDone / overallTotal) * 100) : 0;
@@ -794,7 +806,14 @@ export default function DeploymentTracker() {
           )}
         </div>
 
+        {overflowInfo.overflow && (
+          <div className="raw-card border-warn bg-warn/10 p-4 text-sm" role="alert">
+            <strong className="font-semibold">Pace warning:</strong> {overflowInfo.message}
+          </div>
+        )}
+
         <Insights
+          tracks={tracks}
           coreDone={coreDone}
           coreTotal={coreTotal}
           dsaDone={dsaDone}
@@ -884,6 +903,18 @@ export default function DeploymentTracker() {
                     <span className="font-mono text-xs bg-slate-800 text-cyan-400 px-2 py-0.5 rounded">WEEK {w.week}</span>
                     <h3 className="text-sm font-semibold text-slate-200">{w.title}</h3>
                   </div>
+                  {Array.isArray(w.days) && w.days.length > 0 && (
+                    <ul className="mb-3 space-y-1 text-xs font-mono text-slate-400">
+                      {w.days.map((d) => (
+                        <li key={d.day} className="flex items-center gap-2">
+                          <span className="text-black">D{d.day}</span>
+                          <span className="text-slate-500">·</span>
+                          <span className="text-slate-200">{d.topic}</span>
+                          <span className="text-slate-500">{d.hours}h{d.cumInTopic ? ` · ${d.cumInTopic}h logged` : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <ul className="space-y-2">
                     {w.items.map((item) => (
                       <li key={item.id} className="flex items-start gap-3">

@@ -22,6 +22,7 @@ export default function Insights({
   dsaTotal,
   bonusDone,
   bonusTotal,
+  tracks,
   daySet,
   dayInfo,
   xp,
@@ -45,19 +46,43 @@ export default function Insights({
   const pace = dayInfo
     ? Math.min(100, Math.round((dayInfo.elapsed / 90) * 100))
     : 0;
-  const overall = Math.round(
-    ((coreDone + dsaDone + bonusDone) / (coreTotal + dsaTotal + bonusTotal)) * 100
-  );
+
+  // Domain-derived track bars (passed in from App). Only render non-empty tracks
+  // so a Mathematics syllabus never shows a hardcoded "DSA parallel" bar.
+  const visibleTracks =
+    Array.isArray(tracks) && tracks.length
+      ? tracks.filter((t) => (t.total || 0) > 0)
+      : [
+          { label: "Core route", value: coreDone, total: coreTotal, colorClass: "bg-accent" },
+          { label: "DSA parallel", value: dsaDone, total: dsaTotal, colorClass: "bg-success" },
+          { label: "Staff-level", value: bonusDone, total: bonusTotal, colorClass: "bg-warn" },
+        ].filter((t) => t.total > 0);
+
+  const overall = visibleTracks.length
+    ? Math.round(
+        visibleTracks.reduce((a, t) => a + (t.value || 0), 0) /
+          visibleTracks.reduce((a, t) => a + (t.total || 0), 0) *
+          100
+      )
+    : 0;
 
   return (
     <section className="raw-card p-4 sm:p-5 space-y-5 animate-fade-in" aria-label="Insights">
       <h2 className="raw-h text-h3 uppercase tracking-tight">Insights</h2>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Bar label="Core route" value={coreDone} total={coreTotal} colorClass="bg-accent" />
-        <Bar label="DSA parallel" value={dsaDone} total={dsaTotal} colorClass="bg-success" />
-        <Bar label="Staff-level" value={bonusDone} total={bonusTotal} colorClass="bg-warn" />
-      </div>
+      {visibleTracks.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {visibleTracks.map((t) => (
+            <Bar
+              key={t.label}
+              label={t.label}
+              value={t.value || 0}
+              total={t.total || 0}
+              colorClass={t.colorClass || "bg-accent"}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>

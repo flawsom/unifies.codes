@@ -1,24 +1,21 @@
 import React from "react";
 
 // Map a 1-based plan day to the phase + week index in the curriculum.
+// Uses the ACTUAL week counts produced by the scheduler (no hardcoded cadence),
+// so a Math syllabus paced across N weeks still lines up day -> week correctly.
 function locate(planDay, PHASES) {
-  // Each phase is 3 weeks except the last (p5) which is 1 week.
-  const plan = [
-    { phase: 0, weeks: 3 },
-    { phase: 1, weeks: 3 },
-    { phase: 2, weeks: 3 },
-    { phase: 3, weeks: 3 },
-    { phase: 4, weeks: 1 },
-  ];
+  const counts = (PHASES || []).map((p) => (p.weeks || []).length || 1);
+  if (!counts.length) return { phaseIndex: 0, weekIndex: 0 };
   let day = planDay;
-  for (const p of plan) {
-    if (day <= p.weeks * 7) {
+  for (let i = 0; i < counts.length; i++) {
+    const weeksInPhase = counts[i];
+    if (day <= weeksInPhase * 7) {
       const weekInPhase = Math.ceil(day / 7);
-      return { phaseIndex: p.phase, weekIndex: weekInPhase - 1 };
+      return { phaseIndex: i, weekIndex: Math.min(weekInPhase - 1, weeksInPhase - 1) };
     }
-    day -= p.weeks * 7;
+    day -= weeksInPhase * 7;
   }
-  return { phaseIndex: PHASES.length - 1, weekIndex: 0 };
+  return { phaseIndex: counts.length - 1, weekIndex: 0 };
 }
 
 export default function FocusView({ PHASES, BONUS, checked, startDate, onToggle, onJump }) {

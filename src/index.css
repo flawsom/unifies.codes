@@ -238,7 +238,8 @@ body { background: var(--rb-bg); color: var(--rb-fg); font-family: "Work Sans", 
 .text-white { color: var(--rb-bg) !important; }
 .border-white { border-color: var(--rb-bg) !important; }
 
-.bg-slate-950, .bg-slate-900, .bg-slate-800, .bg-slate-700,
+.bg-slate-950 { background-color: var(--rb-bg) !important; }
+.bg-slate-900, .bg-slate-900/60, .bg-slate-800, .bg-slate-800/60, .bg-slate-700, .bg-slate-700/50 {
 .bg-slate-100, .bg-slate-50 {
   background-color: var(--rb-bg) !important;
 }
@@ -296,6 +297,9 @@ body { background: var(--rb-bg); color: var(--rb-fg); font-family: "Work Sans", 
 .cbx:checked { background-color: var(--rb-fg); }
 .link, a { color: var(--rb-link); }
 
+
+/* Card surfaces visible in light mode (RawBlock sunken #F0F0F0) */
+.bg-slate-900, .bg-slate-900/60, .bg-slate-800, .bg-slate-800/60, .bg-slate-700, .bg-slate-700/50 { background-color: var(--rb-sunken) !important; }
 .app-header {
   background-color: var(--rb-bg);
   border-bottom: 3px solid var(--rb-border);

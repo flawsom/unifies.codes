@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspens
 import { supabase, isSupabaseConfigured } from "./lib/supabaseClient";
 import { useAuth } from "./context/AuthContext";
 import AccountBar from "./components/AccountBar";
-import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, DEFAULT_ALL_ITEMS, SAMPLE_CURRICULA, normalizeCurriculum } from "./data/curriculum";
+import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, DEFAULT_ALL_ITEMS, SAMPLE_CURRICULA } from "./data/curriculum";
 import { analyzeCurriculum, planToCurriculum } from "./utils/analyze";
 import CurriculumImport from "./components/CurriculumImport";
 import RevisionView from "./components/RevisionView";
@@ -296,7 +296,8 @@ export default function DeploymentTracker() {
     (key) => {
       const sample = SAMPLE_CURRICULA[key];
       if (sample) {
-        setCurriculum(normalizeCurriculum(sample.build()));
+        // build() returns the full {phases, bonus, parallelTrack} shape directly.
+        setCurriculum(sample.build());
         setHasPlan(true);
         setSkipped({});
         if (!startDate) setStartDate(todayStr());

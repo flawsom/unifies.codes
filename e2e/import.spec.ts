@@ -24,6 +24,15 @@ test.describe("Unifies — curriculum import & AI gap analysis", () => {
     await expect(page.getByText(/Your curriculum, intelligently tracked/i)).toBeVisible();
   });
 
+  test("loads the FAANG/FDE sample directly", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /Load FAANG\/FDE sample/i }).click();
+    // Sample curriculum should now drive the tracker.
+    await expect(page.getByText(/Your curriculum, intelligently tracked/i)).toBeVisible();
+    // The sample should render its items as checkboxes in the tracker.
+    await expect(page.locator('[data-testid^="check-"]').first()).toBeVisible();
+  });
+
   test("revision & skip is available after a plan is used", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(String(e)));

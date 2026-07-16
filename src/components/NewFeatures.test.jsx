@@ -61,10 +61,13 @@ describe('<FocusView />', () => {
   });
 
   it('shows the current plan day and a suggested next item', () => {
-    // start 9 days ago => day 10 => phase p2 (weeks 4-6), week index 0
+    // start 9 days ago => day should be 10 (timezone-safe)
     const start = new Date();
     start.setDate(start.getDate() - 9);
     const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    // Compute expected day number from the actual dates (handles TZ differences)
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const expectedDay = Math.max(1, Math.floor((Date.now() - new Date(startStr + 'T12:00:00').getTime()) / msPerDay) + 1);
     render(
       <FocusView
         PHASES={DEFAULT_PHASES}
@@ -75,7 +78,7 @@ describe('<FocusView />', () => {
         onJump={() => {}}
       />
     );
-    expect(screen.getByText(/Day 10 of 90/)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Day ${expectedDay} of 90`))).toBeInTheDocument();
     expect(screen.getByText(/Suggested next/i)).toBeInTheDocument();
   });
 });

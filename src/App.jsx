@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { supabase, isSupabaseConfigured } from "./lib/supabaseClient";
 import { useAuth } from "./context/AuthContext";
-import AccountBar from "./components/AccountBar";
 import GuestBanner from "./components/GuestBanner";
+import AppHeader from "./components/AppHeader";
 import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, DEFAULT_ALL_ITEMS, SAMPLE_CURRICULA } from "./data/curriculum";
 import { analyzeCurriculum, planToCurriculum } from "./utils/analyze";
 import CurriculumImport from "./components/CurriculumImport";
@@ -525,11 +525,11 @@ export default function DeploymentTracker() {
 
   const saveStatus = useMemo(() => {
     if (sharedUser) return null;
-    if (saveState === "saving") return { text: "Saving…", cls: "text-slate-500" };
-    if (saveState === "offline") return { text: "Offline — changes saved locally, will sync", cls: "text-black" };
-    if (saveState === "error") return { text: "Not saving — storage blocked", cls: "text-red-400" };
+    if (saveState === "saving") return { text: "Saving…", cls: "text-muted" };
+    if (saveState === "offline") return { text: "Offline — changes saved locally, will sync", cls: "text-fg" };
+    if (saveState === "error") return { text: "Not saving — storage blocked", cls: "text-danger" };
     if (saveState === "saved" && lastSavedAt)
-      return { text: `Saved ✓ ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, cls: "text-emerald-400" };
+      return { text: `Saved ✓ ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, cls: "text-success" };
     return null;
   }, [saveState, lastSavedAt, sharedUser]);
 
@@ -552,23 +552,23 @@ export default function DeploymentTracker() {
     const sHeatmap = buildHeatmap(sharedUser.checkedAt || {});
     const myEnabled = !!(user || localStorage.getItem(STORAGE_KEY));
     return (
-      <div className="min-h-screen bg-white text-black font-sans">
+      <div className="min-h-screen bg-bg text-fg font-sans">
         <div className="max-w-4xl mx-auto px-5 py-10">
-          <a href="/" className="inline-block mb-4 font-mono text-xs uppercase tracking-widest text-black hover:underline underline-offset-2">← Back to Unifies</a>
+          <a href="/" className="inline-block mb-4 font-mono text-xs uppercase tracking-widest text-fg hover:underline underline-offset-2">← Back to Unifies</a>
           <div className="flex items-center gap-3 mb-2">
-            <span className="w-10 h-10 border-[3px] border-black bg-black text-white font-bold flex items-center justify-center">
+            <span className="w-10 h-10 border-[3px] border-fg bg-accent text-accent-fg font-bold flex items-center justify-center">
               {(sharedUser.username || sharedUser.displayName || "?").slice(0, 1).toUpperCase()}
             </span>
             <div>
               <h1 className="text-2xl font-display">{sharedUser.displayName || sharedUser.username}'s Unifies plan</h1>
-              <p className="text-xs text-black font-mono uppercase tracking-widest">Read-only shared progress</p>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest">Read-only shared progress</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-6 font-mono text-sm">
-            <span className="text-black">{sCorePct}% core</span>
-            <span className="text-black">{sDsaPct}% DSA</span>
-            <span className="text-emerald-400">{sStreak}-day streak</span>
-            <span className="text-slate-400">{activeLast7(daySetFromCheckedAt(sharedUser.checkedAt || {}))}/7 active</span>
+            <span className="text-fg">{sCorePct}% core</span>
+            <span className="text-fg">{sDsaPct}% DSA</span>
+            <span className="text-success">{sStreak}-day streak</span>
+            <span className="text-muted">{activeLast7(daySetFromCheckedAt(sharedUser.checkedAt || {}))}/7 active</span>
             {myEnabled && (
               <button
                 onClick={() => {
@@ -580,7 +580,7 @@ export default function DeploymentTracker() {
                   };
                   setSharedCompare(other);
                 }}
-                className="text-xs px-2 py-1 rounded border border-slate-700 text-slate-300 hover:border-slate-500"
+                className="text-xs px-2 py-1 border border-line/50 text-muted hover:border-fg hover:text-fg"
               >
                 Compare with me
               </button>
@@ -588,17 +588,17 @@ export default function DeploymentTracker() {
           </div>
           {sharedCompare && (
             <div className="mt-3 grid grid-cols-3 gap-3 font-mono text-xs">
-              <div className="bg-slate-900 border border-slate-800 rounded p-2">
-                <div className="text-slate-500">Core %</div>
-                <div className="text-black">{sCorePct} vs {sharedCompare.corePct}</div>
+              <div className="bg-surface border border-line/30 p-2">
+                <div className="text-muted">Core %</div>
+                <div className="text-fg">{sCorePct} vs {sharedCompare.corePct}</div>
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded p-2">
-                <div className="text-slate-500">DSA %</div>
-                <div className="text-cyan-400">{sDsaPct} vs {sharedCompare.dsaPct}</div>
+              <div className="bg-surface border border-line/30 p-2">
+                <div className="text-muted">DSA %</div>
+                <div className="text-success">{sDsaPct} vs {sharedCompare.dsaPct}</div>
               </div>
-              <div className="bg-slate-900 border border-slate-800 rounded p-2">
-                <div className="text-slate-500">Streak</div>
-                <div className="text-emerald-400">{sStreak} vs {sharedCompare.streak}</div>
+              <div className="bg-surface border border-line/30 p-2">
+                <div className="text-muted">Streak</div>
+                <div className="text-success">{sStreak} vs {sharedCompare.streak}</div>
               </div>
             </div>
           )}
@@ -612,15 +612,15 @@ export default function DeploymentTracker() {
               const pct = ids.length ? Math.round((done / ids.length) * 100) : 0;
               return (
                 <section key={phase.id}>
-                  <div className="flex items-baseline justify-between border-b border-slate-800 pb-3 mb-4">
-                    <h2 className="text-lg font-bold text-slate-50">{phase.title}</h2>
-                    <span className="font-mono text-slate-400">{pct}%</span>
+                  <div className="flex items-baseline justify-between border-b border-line/30 pb-3 mb-4">
+                    <h2 className="text-lg font-bold text-fg">{phase.title}</h2>
+                    <span className="font-mono text-muted">{pct}%</span>
                   </div>
                   <div className="space-y-2">
                     {phase.weeks.flatMap((w) => w.items).map((item) => (
                       <div key={item.id} className="flex items-start gap-3">
-                        <span className={`mt-1 w-3 h-3 rounded-sm flex-shrink-0 ${sharedUser.checked?.[item.id] ? "bg-black" : "bg-slate-800"}`} />
-                        <p className={`text-sm ${sharedUser.checked?.[item.id] ? "text-slate-500 line-through" : "text-slate-300"}`}>{item.text}</p>
+                        <span className={`mt-1 w-3 h-3 flex-shrink-0 ${sharedUser.checked?.[item.id] ? "bg-accent" : "bg-line/30"}`} />
+                        <p className={`text-sm ${sharedUser.checked?.[item.id] ? "text-muted line-through" : "text-fg"}`}>{item.text}</p>
                       </div>
                     ))}
                   </div>
@@ -628,7 +628,7 @@ export default function DeploymentTracker() {
               );
             })}
           </div>
-          <p className="mt-10 text-center text-xs text-slate-600 font-mono">
+          <p className="mt-10 text-center text-xs text-muted font-mono">
             This is a read-only view · build your own at this app
           </p>
         </div>
@@ -638,8 +638,8 @@ export default function DeploymentTracker() {
 
   // ---- MAIN app ----
   return (
-    <div className="min-h-screen bg-white text-black font-sans">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[500] focus:bg-black focus:text-white focus:px-3 focus:py-1 focus:rounded">Skip to content</a>
+    <div className="min-h-screen bg-bg text-fg font-sans">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[500] focus:bg-accent focus:text-accent-fg focus:px-3 focus:py-1">Skip to content</a>
       {showAdmin && (
         <React.Suspense fallback={null}>
           <AdminPanel defaultCurriculum={DEFAULT_CURRICULUM} onClose={() => setShowAdmin(false)} />
@@ -653,81 +653,27 @@ export default function DeploymentTracker() {
         onSelect={onPaletteSelect}
       />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <div className="app-header border-b border-slate-800 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-5 py-4 sm:py-5">
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <button
-              onClick={handleReset}
-              className="text-left focus:outline-none focus:ring-2 focus:ring-black"
-              title="Back to home — start a new curriculum"
-              aria-label="Back to home"
-            >
-              <p className="font-mono text-xs tracking-[0.2em] text-black uppercase">Unifies</p>
-              <h1 className="text-lg sm:text-2xl font-display tracking-tight text-black leading-tight">Your curriculum, intelligently tracked</h1>
-            </button>
-            <div className="flex items-center gap-3 sm:gap-5">
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="theme-toggle"
-                title="Toggle theme"
-                aria-label="Toggle color theme"
-              >
-                {theme === "dark" ? "☀" : "☾"}
-              </button>
-              <AccountBar onOpenAdmin={() => setShowAdmin(true)} />
-              <div className="text-right" title="Percentage of the 5-phase core route you've checked off">
-                <div className="font-mono text-3xl font-bold text-black tabular-nums">{corePct}%</div>
-                <div className="text-xs text-slate-500 uppercase tracking-wide">core route complete</div>
-              </div>
-            </div>
-          </div>
-
-          {/* progress bar */}
-          <div className="mt-4 h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
-            <div className="h-full bg-black transition-all duration-500" style={{ width: `${corePct}%` }} />
-          </div>
-
-          {/* gamification bar */}
-          <div className="mt-2 flex items-center gap-3 font-mono text-xs">
-            <span className="text-fuchsia-400">LVL {lvl.level}</span>
-            <div className="flex-1 h-1.5 rounded-full bg-slate-900 overflow-hidden">
-              <div className="h-full bg-fuchsia-500" style={{ width: `${lvl.pct}%` }} />
-            </div>
-            <span className="text-slate-500">{xp} XP</span>
-          </div>
-
-          {/* day counter + save status + tools */}
-          <div className="mt-4 flex items-center gap-4 flex-wrap font-mono text-xs">
-            <label className="flex items-center gap-2 text-slate-400">
-              MISSION START:
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200"
-              />
-            </label>
-            {dayInfo && (
-              <>
-                <span className="text-cyan-400">DAY {dayInfo.elapsed} / 90</span>
-                <span className="text-slate-500">{dayInfo.remaining} days remaining</span>
-              </>
-            )}
-            {saveStatus && <span className={saveStatus.cls}>{saveStatus.text}</span>}
-            <span className="text-emerald-400 ml-auto">{momentum}% weekly momentum</span>
-            <button onClick={() => exportProgress({ startDate, checked, checkedAt })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">Export</button>
-            <button onClick={() => exportCsv({ checked, checkedAt, itemsById })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">CSV</button>
-            <button onClick={handleReset} className="text-slate-400 hover:text-slate-200 underline underline-offset-2" title="Clear this plan and start a new curriculum">New</button>
-            <label className="text-slate-400 hover:text-slate-200 underline underline-offset-2 cursor-pointer">
-              Import
-              <input type="file" accept="application/json" onChange={onImport} className="hidden" />
-            </label>
-            <button onClick={() => setShowRevision((v) => !v)} data-testid="revision-toggle" className="text-slate-400 hover:text-slate-200 underline underline-offset-2">
-              Revision &amp; skip
-            </button>
-          </div>
-          {importError && <p className="mt-1 text-xs text-red-400 font-mono">{importError}</p>}
-        </div>
+      <AppHeader
+        onReset={handleReset}
+        theme={theme}
+        onThemeChange={(t) => setTheme(t)}
+        onOpenAdmin={() => setShowAdmin(true)}
+        corePct={corePct}
+        xp={xp}
+        lvl={lvl}
+        dayInfo={dayInfo}
+        startDate={startDate}
+        onStartDateChange={setStartDate}
+        saveStatus={saveStatus}
+        momentum={momentum}
+        onExport={() => exportProgress({ startDate, checked, checkedAt })}
+        onExportCsv={() => exportCsv({ checked, checkedAt, itemsById })}
+        onResetPlan={handleReset}
+        onImport={onImport}
+        importError={importError}
+        onToggleRevision={setShowRevision}
+        showRevision={showRevision}
+      />
 
         {showRevision && (
           <RevisionView
@@ -751,20 +697,19 @@ export default function DeploymentTracker() {
                 <React.Fragment key={phase.id}>
                   <button onClick={() => scrollTo(phase.id)} className="flex flex-col items-center gap-2 group flex-shrink-0">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-colors
-                      ${complete ? "bg-black border-black text-white" : isOpen ? "border-cyan-400 text-cyan-400" : "border-black text-slate-500 group-hover:border-slate-500"}`}>
+                      ${complete ? "bg-accent border-accent text-accent-fg" : isOpen ? "border-accent text-accent" : "border-line text-muted group-hover:border-fg"}`}>
                       {phase.code}
                     </div>
-                    <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-cyan-400" : "text-slate-500"}`}>{phase.title}</span>
+                    <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-accent" : "text-muted"}`}>{phase.title}</span>
                   </button>
                   {idx < ALL_PHASES.length - 1 && (
-                    <div className={`flex-1 h-px mt-5 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-black" : "bg-slate-800"}`} />
+                    <div className={`flex-1 h-px mt-5 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-accent" : "bg-line/30"}`} />
                   )}
                 </React.Fragment>
               );
             })}
           </div>
         </div>
-      </div>
 
       {/* FOCUS + INSIGHTS + HEATMAP */}
       {!user && (
@@ -775,7 +720,7 @@ export default function DeploymentTracker() {
         <FocusView PHASES={PHASES} BONUS={BONUS} checked={checked} startDate={startDate} onToggle={toggle} onJump={scrollTo} />
 
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs text-slate-500 font-mono">Weekly goal:</span>
+          <span className="text-xs text-muted font-mono">Weekly goal:</span>
           <input
             type="number"
             min="1"
@@ -786,11 +731,11 @@ export default function DeploymentTracker() {
               setWeeklyGoal(v);
               try { localStorage.setItem("fde-tracker-goal", String(v)); } catch {}
             }}
-            className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100"
+            className="w-14 bg-surface border border-line px-2 py-1 text-sm text-fg"
             aria-label="Weekly active-day goal"
           />
-          <span className="text-xs text-slate-500">active days / week</span>
-          <span className={`text-xs font-mono ${goalReached ? "text-emerald-400" : "text-black"}`}>
+          <span className="text-xs text-muted">active days / week</span>
+          <span className={`text-xs font-mono ${goalReached ? "text-success" : "text-fg"}`}>
             {weeklyActive}/{weeklyGoal} {goalReached ? "✓" : ""}
           </span>
           {notifySupported && (
@@ -799,7 +744,7 @@ export default function DeploymentTracker() {
                 const ok = await enableNotify();
                 notify(ok ? "Reminders enabled" : "Notifications blocked by browser", { kind: ok ? "info" : "error" });
               }}
-              className="text-xs px-2 py-1 rounded border border-slate-700 text-slate-300 hover:border-slate-500"
+              className="text-xs px-2 py-1 border border-line/50 text-muted hover:border-fg hover:text-fg"
             >
               {notifyEnabled ? "Reminders on" : "Enable reminders"}
             </button>
@@ -950,22 +895,22 @@ export default function DeploymentTracker() {
 
         {/* onboarding nudge if no mission start set */}
         {!startDate && (
-          <div className="bg-black/10 border border-black rounded-lg p-4 text-center">
-            <p className="text-sm text-black">Set your <span className="font-mono">MISSION START</span> date above to track your daily streak and momentum.</p>
+          <div className="bg-surface border border-line/30 p-4 text-center">
+            <p className="text-sm text-fg">Set your <span className="font-mono">MISSION START</span> date above to track your daily streak and momentum.</p>
           </div>
         )}
 
-        <div className="text-center text-xs text-slate-600 font-mono pt-6 border-t border-slate-800">
+        <div className="text-center text-xs text-muted font-mono pt-6 border-t border-line/30">
           {coreDone}/{coreTotal} core · {dsaDone}/{dsaTotal} DSA · {bonusDone}/{bonusTotal} staff · LVL {lvl.level} · {xp} XP · press ⌘K to jump to any item
         </div>
 
         {/* FOOTER: social links */}
-        <footer className="mt-8 pt-6 border-t border-slate-800 flex items-center justify-center gap-3 text-xs">
+        <footer className="mt-8 pt-6 border-t border-line/30 flex items-center justify-center gap-3 text-xs">
           <a
             href="https://github.com/flawsom"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 border border-line/50 text-muted hover:border-fg hover:text-fg transition-colors"
           >
             <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" /></svg>
             GitHub
@@ -974,7 +919,7 @@ export default function DeploymentTracker() {
             href="https://www.instagram.com/vibes.him"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 border border-line/50 text-muted hover:border-fg hover:text-fg transition-colors"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.43.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.43.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.43-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.43-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.95c-3.15 0-3.53.01-4.77.07-.92.04-1.42.2-1.75.33-.44.17-.75.37-1.08.7-.33.33-.53.64-.7 1.08-.13.33-.29.83-.33 1.75C3.06 8.47 3.05 8.85 3.05 12s.01 3.53.07 4.77c.04.92.2 1.42.33 1.75.17.44.37.75.7 1.08.33.33.64.53 1.08.7.33.13.83.29 1.75.33 1.24.06 1.62.07 4.77.07s3.53-.01 4.77-.07c.92-.04 1.42-.2 1.75-.33.44-.17.75-.37 1.08-.7.33-.33.53-.64.7-1.08.13-.33.29-.83.33-1.75.06-1.24.07-1.62.07-4.77s-.01-3.53-.07-4.77c-.04-.92-.2-1.42-.33-1.75a2.9 2.9 0 0 0-.7-1.08 2.9 2.9 0 0 0-1.08-.7c-.33-.13-.83-.29-1.75-.33-1.24-.06-1.62-.07-4.77-.07zm0 3.32a4.57 4.57 0 1 1 0 9.14 4.57 4.57 0 0 1 0-9.14zm0 7.54a2.97 2.97 0 1 0 0-5.94 2.97 2.97 0 0 0 0 5.94zm5.83-7.78a1.07 1.07 0 1 1-2.14 0 1.07 1.07 0 0 1 2.14 0z" /></svg>
             Instagram

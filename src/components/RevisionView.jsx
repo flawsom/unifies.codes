@@ -35,7 +35,7 @@ export default function RevisionView({ items, checked, skipped, onSkip, onRestor
         <ul className="mt-4">
           {remaining.map((it) => (
             <li key={it.id} className="list-row" data-testid="revision-item">
-              <span className="pr-4">{it.title}</span>
+              <span className="pr-4">{it.text}</span>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setConfirmItem(it)}
@@ -54,7 +54,7 @@ export default function RevisionView({ items, checked, skipped, onSkip, onRestor
           <ul className="mt-2">
             {skippedList.map((it) => (
               <li key={it.id} className="list-row">
-                <span className="pr-4 line-through decoration-2">{it.title}</span>
+                <span className="pr-4 line-through decoration-2">{it.text}</span>
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => onRestore && onRestore(it.id)}
@@ -78,7 +78,7 @@ export default function RevisionView({ items, checked, skipped, onSkip, onRestor
           <div className="card card-elevated max-w-md">
             <h3 className="font-display text-h3">Caution before you skip</h3>
             <p className="text-sm mt-3">
-              You're about to skip <strong>{confirmItem.title}</strong>.
+              You're about to skip <strong>{confirmItem.text}</strong>.
             </p>
             <ul className="text-sm mt-3 list-disc list-inside space-y-1">
               <li>Skipped items leave your active tracker and your streak.</li>

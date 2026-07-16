@@ -760,11 +760,7 @@ export default function DeploymentTracker() {
       )}
 
       <div id="main" className="max-w-6xl mx-auto px-5 pt-8 space-y-6">
-        <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
-          <div className="lg:col-span-2 space-y-6">
         <FocusView PHASES={PHASES} BONUS={BONUS} checked={checked} startDate={startDate} onToggle={toggle} onJump={scrollTo} />
-          </div>
-          <div className="lg:col-span-1 space-y-6">
 
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs text-slate-500 font-mono">Weekly goal:</span>
@@ -811,8 +807,6 @@ export default function DeploymentTracker() {
           lvl={lvl}
           startDate={startDate}
         />
-          </div>
-        </div>
 
         <Highlights meta={curriculum._meta} />
 

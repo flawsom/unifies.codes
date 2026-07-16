@@ -18,6 +18,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The workflow-level `contents: read` makes the token read-only; override it
+    # here so this job can push the regenerated README status back to main.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4

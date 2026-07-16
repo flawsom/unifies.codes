@@ -1,7 +1,15 @@
 // Resolves Supabase config at runtime so the app works even when the
-// VITE_* build-time vars are missing or set after deploy. It tries the
-// build-time env first, then falls back to a serverless /api/config
-// endpoint that reads the host's server env (no VITE_ prefix required).
+// VITE_* build-time vars are missing. Resolution order:
+//   1) build-time env (import.meta.env.VITE_SUPABASE_*)
+//   2) runtime /api/analyze endpoint (host server env, no VITE_ prefix needed)
+//   3) committed fallback (the public anon key — safe to ship in the client)
+// The anon key is public by design (it's shipped in the bundle regardless),
+// so a committed fallback guarantees sign-in works without host env setup.
+const FALLBACK = {
+  url: "https://smggxiugcqwfjqtynlnc.supabase.co",
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZ2d4aXVnY3F3ZmpxdHlubG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNzQ4MTMsImV4cCI6MjA5OTc1MDgxM30.p8sqoW_zPnHopPuQE4W_3_o9ONon4i9GZ1UTRkTZUsU",
+};
+
 let _resolved = null;
 
 export function getRuntimeConfig() {
@@ -33,8 +41,11 @@ export async function initRuntimeConfig() {
       }
     }
   } catch (e) {
-    console.warn("runtime config fetch failed; guest mode", e);
+    console.warn("runtime config fetch failed; using committed fallback", e);
   }
-  _resolved = null;
-  return null;
+  // 3) committed public fallback
+  _resolved = FALLBACK;
+  if (typeof window !== "undefined") window.__UNIFIES_CONFIG__ = _resolved;
+  return _resolved;
 }
+

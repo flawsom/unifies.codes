@@ -1,10 +1,9 @@
 // api/_lib/analyze-core.js
 // Shared analyzer logic used by both Vercel (api/analyze.js) and Netlify
-// (netlify/functions/analyze.js). Calls a FREE OpenRouter model and returns
-// strict JSON. If no API key is configured, returns 501 so the frontend falls
-// back to its offline heuristic planner.
-
-const FREE_MODEL = process.env.OPENROUTER_MODEL || "google/gemma-2-9b-it:free";
+// (netlify/functions/analyze.js). Calls a FREE Google Gemini model
+// (gemini-2.0-flash) and returns strict JSON. If no Gemini key is set, it
+// falls back to OpenRouter (if configured). If neither is configured, returns
+// 501 so the frontend falls back to its offline heuristic planner.
 
 const SYSTEM_PROMPT = `You are Unifies, an expert curriculum architect. You turn any raw curriculum (syllabus, job description, study plan) into a precise, trackable roadmap.
 
@@ -59,94 +58,151 @@ const SYSTEM_PROMPT = `You are Unifies, an expert curriculum architect. You turn
  * @param {{getKey:()=>string|undefined}} env
  */
 export async function runAnalyze(body, env) {
-  const key = env.getEnv ? env.getEnv("OPENROUTER_API_KEY") : process.env.OPENROUTER_API_KEY;
-  if (!key) {
-    return { status: 501, json: { error: "no_key", message: "AI not configured" } };
-  }
+  const geminiKey = env.getEnv ? env.getEnv("GEMINI_API_KEY") : process.env.GEMINI_API_KEY;
+  const openrouterKey = env.getEnv ? env.getEnv("OPENROUTER_API_KEY") : process.env.OPENROUTER_API_KEY;
   const text = (body && body.text) || "";
   if (!text.trim()) {
     return { status: 400, json: { error: "empty" } };
   }
 
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 20000);
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://unifies.codes",
-        "X-Title": "Unifies",
-      },
-      body: JSON.stringify({
-        model: FREE_MODEL,
-        stream: false,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: text.slice(0, 12000) },
-        ],
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      return { status: 502, json: { error: "upstream", status: res.status, detail: errText.slice(0, 200) } };
-    }
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content || "";
-    // Strip accidental code fences if the model added them.
-    const cleaned = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-    const parsed = JSON.parse(cleaned);
-
-    // Accept EITHER shape:
-    //  - Rich (preferred): parsed.phases[].weeks[].items[]
-    //  - Flat (legacy): parsed.items[]
-    const hasRich = Array.isArray(parsed.phases) && parsed.phases.some((p) => Array.isArray(p.weeks) && p.weeks.length);
-    if (hasRich) {
-      // Normalize the rich week-grouped shape into the flat {phases, items}
-      // form the frontend already consumes.
-      const flatItems = [];
-      const phases = parsed.phases.map((ph) => {
-        const weeks = ph.weeks || [];
-        for (const w of weeks) {
-          for (const it of w.items || []) {
-            flatItems.push({
-              id: it.id || `${ph.id}-${flatItems.length}`,
-              title: it.title,
-              phaseId: ph.id,
-              week: w.week,
-              difficulty: it.difficulty || "basic",
-              source: it.source === "app" ? "app" : "user",
-              track: it.track || "core",
-              milestone: !!it.milestone,
-              note: it.note || "",
-            });
-          }
+  // --- Try Google Gemini (free tier: gemini-2.0-flash) ---
+  if (geminiKey) {
+    const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 25000);
+    try {
+      const res = await fetch(
+        https://generativelanguage.googleapis.com/v1beta/models/:generateContent?key=,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: SYSTEM_PROMPT + 
+ + 
+ + "CURRICULUM TO ANALYZE:" + 
+ + text.slice(0, 12000) }] },
+            ],
+            generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+          }),
+          signal: controller.signal,
         }
-        return { id: ph.id, title: ph.title };
-      });
-      return {
-        status: 200,
-        json: {
-          title: parsed.title || "My Curriculum",
-          phases,
-          items: flatItems,
-          included: parsed.included || "",
-          added: parsed.added || "",
-          path: Array.isArray(parsed.path) ? parsed.path : [],
-        },
-      };
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const out = normalizePlan(content);
+        if (out) return out;
+      } else {
+        const errText = await res.text().catch(() => "");
+        console.error("Gemini error", res.status, errText.slice(0, 200));
+      }
+    } catch (e) {
+      console.error("Gemini call failed", e && e.message);
+    } finally {
+      clearTimeout(t);
     }
-
-    if (!Array.isArray(parsed.items)) {
-      return { status: 502, json: { error: "bad_shape" } };
-    }
-    return { status: 200, json: parsed };
-  } catch (e) {
-    return { status: 502, json: { error: "analyze_failed", message: String(e && e.message || e) } };
-  } finally {
-    clearTimeout(t);
+    // Gemini failed/empty -> fall through to OpenRouter (if configured).
   }
+
+  // --- Fallback: OpenRouter free models ---
+  if (openrouterKey) {
+    const primary = process.env.OPENROUTER_MODEL || "google/gemma-2-9b-it:free";
+    const MODEL_FALLBACKS = [
+      primary,
+      "meta-llama/llama-3.1-8b-instruct:free",
+      "mistralai/mistral-7b-instruct:free",
+      "nousresearch/hermes-3-llama-3.1-8b:free",
+    ].filter((m, i, a) => a.indexOf(m) === i);
+
+    for (const model of MODEL_FALLBACKS) {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 20000);
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: Bearer ,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://unifies.codes",
+            "X-Title": "Unifies",
+          },
+          body: JSON.stringify({
+            model,
+            stream: false,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: text.slice(0, 12000) },
+            ],
+          }),
+          signal: controller.signal,
+        });
+        if (res.status === 429) continue;
+        if (!res.ok) continue;
+        const data = await res.json();
+        const content = data?.choices?.[0]?.message?.content || "";
+        const out = normalizePlan(content);
+        if (out) return out;
+      } catch (e) {
+        console.error("OpenRouter call failed", e && e.message);
+      } finally {
+        clearTimeout(t);
+      }
+    }
+  }
+
+  // Neither provider succeeded.
+  return { status: 501, json: { error: "no_provider", message: "AI unavailable" } };
+}
+
+/**
+ * Parse a model response (already JSON text) into the flat {phases, items}
+ * shape the frontend consumes. Accepts both rich week-grouped and flat shapes.
+ */
+function normalizePlan(content) {
+  if (!content) return null;
+  const cleaned = content.replace(/^`(?:json)?/i, "").replace(/`$/i, "").trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+  const hasRich = Array.isArray(parsed.phases) && parsed.phases.some((p) => Array.isArray(p.weeks) && p.weeks.length);
+  if (hasRich) {
+    const flatItems = [];
+    const phases = parsed.phases.map((ph) => {
+      const weeks = ph.weeks || [];
+      for (const w of weeks) {
+        for (const it of w.items || []) {
+          flatItems.push({
+            id: it.id || ${ph.id}-,
+            title: it.title,
+            phaseId: ph.id,
+            week: w.week,
+            difficulty: it.difficulty || "basic",
+            source: it.source === "app" ? "app" : "user",
+            track: it.track || "core",
+            milestone: !!it.milestone,
+            note: it.note || "",
+          });
+        }
+      }
+      return { id: ph.id, title: ph.title };
+    });
+    return {
+      status: 200,
+      json: {
+        title: parsed.title || "My Curriculum",
+        phases,
+        items: flatItems,
+        included: parsed.included || "",
+        added: parsed.added || "",
+        path: Array.isArray(parsed.path) ? parsed.path : [],
+      },
+    };
+  }
+  if (!Array.isArray(parsed.items)) return null;
+  return { status: 200, json: parsed };
 }

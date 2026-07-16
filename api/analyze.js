@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
       key: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
       hasOpenRouter: !!process.env.OPENROUTER_API_KEY,
+      hasGemini: !!process.env.GEMINI_API_KEY,
     });
     return;
   }

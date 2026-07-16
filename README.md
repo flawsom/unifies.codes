@@ -47,6 +47,8 @@ Hosted at **[unifies.codes](https://unifies.codes)** · Open source at **[github
 
 > **Free & open source.** MIT-licensed, no accounts or trackers required, runs fully in guest mode with no backend. No paid tier, no analytics — just a portfolio-grade study tool.
 
+> **Design:** the full visual system (RawBlock brutalist — tokens, typography, components, theming, do's/don'ts) is documented in [`design.md`](./design.md).
+
 ## 📘 User Guide — how to use the app
 
 This section is a complete walkthrough. You don't need to read the setup sections above to start — **open the app and begin immediately** in guest mode.
@@ -122,7 +124,7 @@ If you're unsure, just keep the item — checking it later is always safer than 
 
 ### 8. Theme
 
-Use the **sun/moon toggle** in the header to switch light/dark, or choose **system** to follow your OS. The app respects `prefers-reduced-motion`.
+Use the **Light / Dark toggle** (top-right of every screen) to switch themes, or choose **system** to follow your OS. The app respects `prefers-reduced-motion`.
 
 ### 9. Share & compare (optional)
 
@@ -138,7 +140,7 @@ If a Supabase project is configured (see setup below), click **Sign in with Goog
 - unlock the **Admin panel** (admins only) to edit the live curriculum and manage accounts,
 - make your shared profile visible to others automatically.
 
-Without it, the app runs fully in **guest mode** — your data stays in your browser.
+Without it, the app runs fully in **guest mode** — your data stays in your browser. A prominent **"Sign in to sync progress"** banner reminds guests they can sign in anytime (sign-in is enabled by default via the app's committed public key).
 
 ### 11. Notifications (optional)
 
@@ -371,8 +373,7 @@ Both guarantee that refreshing on `/?u=someone` or any deep link serves the app.
 ### Guest mode (no Supabase) — fully supported
 
 If you deploy **without** setting the two `VITE_SUPABASE_*` variables, the app
-detects the missing config and runs entirely client-side: progress is stored in
-`localStorage`, sharing uses the browser's local cache, and there's no sign-in.
+still runs fully client-side for storage - progress is stored in `localStorage`, and sharing uses the browser's local cache. **Sign-in still works**, because the app ships with a committed public Supabase anon key (the `Sign in with Google` button and the "Sign in to sync progress" banner are live by default). To use **your own** Supabase project instead, set `VITE_SUPABASE_*` in the host env - the app upgrades to your project automatically.
 This is the zero-cost, zero-config path and is perfectly fine for a portfolio demo.
 
 ## Continuous Integration & Deployment
@@ -421,7 +422,8 @@ unifies.codes/
 │  ├─ data/curriculum.js      # generic curriculum model + FAANG/FDE sample
 │  ├─ utils/                  # analyze (AI + heuristic), progressStats, share, io
 │  ├─ hooks/                  # useTheme, useNotifications, useFocusTrap
-│  ├─ components/             # CurriculumImport, RevisionView, Highlights,
+│  ├─ lib/runtimeConfig.js     # resolves Supabase config (committed fallback → host env)
+│  ├─ components/             # CurriculumImport, GuestBanner, RevisionView, Highlights,
 │  │                          #   FocusView, Insights, ActivityHeatmap,
 │  │                          #   CommandPalette, SharePanel, ShortcutsHelp, Toast
 │  └─ *.test.js / *.test.jsx  # colocated unit + component tests

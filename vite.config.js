@@ -14,8 +14,8 @@ export default defineConfig({
         short_name: "Unifies",
         description:
           "Paste any curriculum and let Unifies turn it into a smart, trackable study plan from beginner to staff-level.",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        theme_color: "#f6f7f9",
+        background_color: "#f6f7f9",
         display: "standalone",
         start_url: "/",
         icons: [

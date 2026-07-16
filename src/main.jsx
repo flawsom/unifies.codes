@@ -1,22 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { initRuntimeConfig } from "./lib/runtimeConfig";
 
-// Resolve Supabase config at runtime BEFORE any module reads it.
-async function bootstrap() {
-  try {
-    const res = await fetch("/api/analyze", { headers: { accept: "application/json" } });
-    if (res.ok) {
-      const d = await res.json();
-      if (d && d.url && d.key) {
-        window.__UNIFIES_CONFIG__ = { url: d.url, key: d.key };
-      }
-    }
-  } catch {
-    /* guest mode fallback */
-  }
-}
-
-bootstrap().finally(() => {
+// Resolve Supabase config at runtime BEFORE any module reads it. This applies
+// build-time env, the /api/analyze endpoint, and a committed public fallback —
+// so sign-in works even when host env vars are missing.
+initRuntimeConfig().finally(() => {
   Promise.all([
     import("./App.jsx"),
     import("./context/AuthContext.jsx"),

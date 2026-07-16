@@ -729,7 +729,7 @@ export default function DeploymentTracker() {
         )}
 
         {/* DEPLOYMENT ROUTE */}
-        <div className="max-w-4xl mx-auto px-5 pb-5 overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-5 pb-5 overflow-x-auto">
           <div className="flex items-center gap-x-1 min-w-[320px] mx-auto w-max">
             {ALL_PHASES.map((phase, idx) => {
               const pct = phasePct(phase);
@@ -759,8 +759,12 @@ export default function DeploymentTracker() {
         <GuestBanner />
       )}
 
-      <div id="main" className="max-w-4xl mx-auto px-5 pt-8 space-y-6">
+      <div id="main" className="max-w-6xl mx-auto px-5 pt-8 space-y-6">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+          <div className="lg:col-span-2 space-y-6">
         <FocusView PHASES={PHASES} BONUS={BONUS} checked={checked} startDate={startDate} onToggle={toggle} onJump={scrollTo} />
+          </div>
+          <div className="lg:col-span-1 space-y-6">
 
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs text-slate-500 font-mono">Weekly goal:</span>
@@ -807,6 +811,8 @@ export default function DeploymentTracker() {
           lvl={lvl}
           startDate={startDate}
         />
+          </div>
+        </div>
 
         <Highlights meta={curriculum._meta} />
 
@@ -826,8 +832,8 @@ export default function DeploymentTracker() {
       </div>
 
       {/* PARALLEL TRACK */}
-      <div className="max-w-4xl mx-auto px-5 pt-8">
-        <div className="bg-slate-900/60 border border-cyan-900/50 rounded-lg p-4">
+      <div className="max-w-6xl mx-auto px-5 pt-8">
+        <div className="raw-card p-4">
           <div className="flex items-baseline justify-between mb-1">
             <div>
               <p className="font-mono text-xs text-cyan-400 tracking-widest uppercase">Parallel Ops</p>
@@ -866,7 +872,7 @@ export default function DeploymentTracker() {
       </div>
 
       {/* PHASE SECTIONS */}
-      <div className="max-w-4xl mx-auto px-5 py-8 space-y-14">
+      <div className="max-w-6xl mx-auto px-5 py-8 space-y-14">
         {ALL_PHASES.map((phase) => (
           <section key={phase.id} ref={(el) => (refs.current[phase.id] = el)} data-testid="phase-section" data-phase-id={phase.id}>
             <div className="flex items-baseline justify-between border-b border-slate-800 pb-3 mb-6">
@@ -879,7 +885,7 @@ export default function DeploymentTracker() {
             </div>
             <div className="space-y-6">
               {phase.weeks.map((w) => (
-                <div key={String(phase.id) + w.week} className="bg-slate-900/60 border border-slate-800 rounded-lg p-4">
+                <div key={String(phase.id) + w.week} className="raw-card p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="font-mono text-xs bg-slate-800 text-cyan-400 px-2 py-0.5 rounded">WEEK {w.week}</span>
                     <h3 className="text-sm font-semibold text-slate-200">{w.title}</h3>

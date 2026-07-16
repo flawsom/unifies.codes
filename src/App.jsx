@@ -745,7 +745,7 @@ export default function DeploymentTracker() {
                     <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-cyan-400" : "text-slate-500"}`}>{phase.title}</span>
                   </button>
                   {idx < ALL_PHASES.length - 1 && (
-                    <div className={`flex-1 h-px mb-6 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-black" : "bg-slate-800"}`} />
+                    <div className={`flex-1 h-px mt-5 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-black" : "bg-slate-800"}`} />
                   )}
                 </React.Fragment>
               );

@@ -98,31 +98,58 @@ export function heuristicStructure(raw) {
   const items = [];
   let currentPhase = null;
   let currentWeek = null;
+  let currentWeekTitle = "";
   let phaseIdx = 0;
   let userItemCount = 0;
 
   const pushPhase = (title) => {
     const id = `p${phaseIdx + 1}`;
-    phases.push({ id, title });
+    phases.push({ id, title, weeks: [] });
     currentPhase = id;
     phaseIdx += 1;
     currentWeek = null;
+    currentWeekTitle = "";
     return id;
   };
 
+  const ensureWeek = () => {
+    const ph = phases.find((p) => p.id === currentPhase);
+    if (!ph) return null;
+    let wk = ph.weeks.find((w) => w.week === currentWeek);
+    if (!wk) {
+      wk = { week: currentWeek || ph.weeks.length + 1, title: currentWeekTitle || `Week ${ph.weeks.length + 1}`, items: [] };
+      ph.weeks.push(wk);
+    }
+    return wk;
+  };
+
   for (const line of lines) {
-    // Section heading: "# Title", "## Title", all-caps short line, or "Phase N:"
-    const headingMatch = line.match(/^#+\s+(.*)$/) || line.match(/^(phase|module|section|week|unit)\s*\d*[:\-]?\s*(.*)$/i);
-    if (headingMatch && line.length < 80) {
-      const title = (headingMatch[1] || headingMatch[2] || line).trim();
-      if (title) pushPhase(title);
+    // Week marker FIRST: "Week 3" / "W3" (may carry a heading, e.g. "Week 3: Strings")
+    const weekMatch = line.match(/^w(?:eek)?\s*(\d+)\s*[:\-]?\s*(.*)$/i);
+    if (weekMatch) {
+      currentWeek = parseInt(weekMatch[1], 10);
+      currentWeekTitle = (weekMatch[2] || "").trim();
       continue;
     }
 
-    // Week marker: "Week 3" / "W3"
-    const weekMatch = line.match(/^w(?:eek)?\s*(\d+)/i);
-    if (weekMatch) {
-      currentWeek = parseInt(weekMatch[1], 10);
+    // Section heading. One '#' = new PHASE. Two '##' = new WEEK within phase.
+    const h1 = line.match(/^#\s+(.*)$/);
+    if (h1 && line.length < 80) {
+      const title = h1[1].trim();
+      if (title) pushPhase(title);
+      continue;
+    }
+    const h2 = line.match(/^##\s+(.*)$/);
+    if (h2 && line.length < 80) {
+      currentWeek = (phases.find((p) => p.id === currentPhase)?.weeks.length || 0) + 1;
+      currentWeekTitle = h2[1].trim();
+      continue;
+    }
+    // "Phase/Module/Section/Unit N: Title"
+    const headingMatch = line.match(/^(phase|module|section|unit)\s*(\d*)\s*[:\-]?\s*(.*)$/i);
+    if (headingMatch && line.length < 80) {
+      const title = (headingMatch[3] || (headingMatch[1] + " " + headingMatch[2]) || line).trim();
+      if (title) pushPhase(title);
       continue;
     }
 
@@ -132,8 +159,10 @@ export function heuristicStructure(raw) {
     if (!title) continue;
 
     if (!currentPhase) pushPhase("Part 1");
+    if (currentWeek == null) currentWeek = (phases.find((p) => p.id === currentPhase)?.weeks.length || 0) + 1;
+    const wk = ensureWeek();
     const id = makeId(currentPhase, items.length);
-    items.push({
+    const itemObj = {
       id,
       title,
       text: title,
@@ -142,7 +171,9 @@ export function heuristicStructure(raw) {
       difficulty: inferDifficulty(title),
       source: "user",
       track: "core",
-    });
+    };
+    items.push(itemObj);
+    if (wk) wk.items.push(itemObj);
     userItemCount += 1;
   }
 
@@ -156,9 +187,9 @@ export function heuristicStructure(raw) {
   const addedItems = [];
   if (!hasBasic) {
     const fid = "app-basics";
-    phases.unshift({ id: fid, title: "Foundations (added by Unifies)" });
+    phases.unshift({ id: fid, title: "Foundations (added by Unifies)", weeks: [] });
     APP_FOUNDATION_TITLES.forEach((t, i) => {
-      addedItems.push({
+      const obj = {
         id: `${fid}-${i + 1}`,
         title: t,
         text: t,
@@ -167,7 +198,10 @@ export function heuristicStructure(raw) {
         source: "app",
         track: "core",
         note: "Unifies added this because your curriculum started mid-level.",
-      });
+      };
+      addedItems.push(obj);
+      const w = (phases[0].weeks[0] = phases[0].weeks[0] || { week: 1, title: "Foundations", items: [] });
+      w.items.push(obj);
     });
   }
 
@@ -175,9 +209,10 @@ export function heuristicStructure(raw) {
   const hasAdvanced = items.some((i) => i.difficulty === "advanced");
   if (!hasAdvanced) {
     const aid = "app-advanced";
-    phases.push({ id: aid, title: "Beyond mastery (added by Unifies)" });
+    const advPhase = { id: aid, title: "Beyond mastery (added by Unifies)", weeks: [] };
+    phases.push(advPhase);
     APP_ADVANCED_TITLES.forEach((t, i) => {
-      addedItems.push({
+      const obj = {
         id: `${aid}-${i + 1}`,
         title: t,
         text: t,
@@ -186,7 +221,10 @@ export function heuristicStructure(raw) {
         source: "app",
         track: "bonus",
         note: "Unifies added this to push you from competent to staff-level.",
-      });
+      };
+      addedItems.push(obj);
+      const w = (advPhase.weeks[0] = advPhase.weeks[0] || { week: 1, title: "Beyond mastery", items: [] });
+      w.items.push(obj);
     });
   }
 
@@ -243,8 +281,24 @@ export async function analyzeCurriculum(raw, opts = {}) {
       return { plan: heuristicStructure(text), via: "heuristic" };
     }
     const data = await res.json();
-    if (!data || !Array.isArray(data.items) || data.items.length === 0) {
+    const hasRich = Array.isArray(data.phases) && data.phases.some((p) => Array.isArray(p.weeks) && p.weeks.length);
+    const hasFlat = Array.isArray(data.items) && data.items.length > 0;
+    if (!data || (!hasRich && !hasFlat)) {
       return { plan: heuristicStructure(text), via: "heuristic" };
+    }
+    if (hasRich) {
+      // AI returned the FDE-style week-grouped shape. Pass through as-is.
+      return {
+        plan: {
+          title: data.title || "My Curriculum",
+          phases: data.phases,
+          items: data.items || [],
+          included: data.included || "",
+          added: data.added || "",
+          path: Array.isArray(data.path) ? data.path : [],
+        },
+        via: "ai",
+      };
     }
     // Normalize: ensure ids, source defaults, track default.
     const items = data.items.map((it, i) => ({
@@ -283,18 +337,58 @@ export { inferDifficulty };
 /**
  * Convert an analyzed Plan into the app's existing curriculum shape
  * ({ phases, bonus, parallelTrack }) so NO rendering code has to change.
- * Items keep their {id,title,week,phaseId,milestone,source,difficulty,track}.
+ *
+ * Accepts EITHER shape:
+ *   - Rich (AI, preferred): plan.phases[].weeks[].items[]  (FDE-style: every week
+ *     has a heading + equally-detailed items, basic -> staff progression).
+ *   - Flat (legacy/heuristic): plan.phases[] + plan.items[] (grouped by phaseId/week).
  * @param {Plan & {via?:string}} plan
  */
 export function planToCurriculum(plan) {
   const phases = plan.phases || [];
   const items = plan.items || [];
-  const byPhase = {};
-  for (const it of items) {
-    (byPhase[it.phaseId] = byPhase[it.phaseId] || []).push(it);
-  }
 
-  const toPhase = (ph, phItems) => {
+  // Detect rich week-grouped shape.
+  const richPhases = phases.filter((p) => Array.isArray(p.weeks) && p.weeks.length);
+
+  // Normalize every item into {id,title,text,phaseId,week,weekTitle,difficulty,source,milestone,note,track}
+  const normItem = (it, phaseId, week, weekTitle) => ({
+    id: it.id || makeId(phaseId || "p", Math.random()),
+    title: String(it.title || "").trim(),
+    text: String(it.title || "").trim(),
+    phaseId: it.phaseId || phaseId,
+    week: it.week != null ? Number(it.week) : week != null ? Number(week) : undefined,
+    weekTitle: it.weekTitle || weekTitle || null,
+    difficulty: it.difficulty || inferDifficulty(it.title || ""),
+    source: it.source === "app" ? "app" : "user",
+    milestone: !!it.milestone,
+    note: it.note || "",
+    track: it.track || "core",
+  });
+
+  const buildPhase = (ph, phItems) => {
+    // If the phase already carries weeks (rich shape), preserve them.
+    if (Array.isArray(ph.weeks) && ph.weeks.length) {
+      const weeks = ph.weeks
+        .slice()
+        .sort((a, b) => (a.week || 0) - (b.week || 0))
+        .map((w) => ({
+          week: w.week || 1,
+          title: w.title || "",
+          items: (w.items || []).map((it) =>
+            normItem(it, ph.id, w.week, w.title)
+          ),
+        }));
+      const code = String(ph.id).replace(/\D/g, "") || "0";
+      return {
+        id: ph.id,
+        code: code.padStart(2, "0"),
+        title: ph.title,
+        sub: ph.sub || "",
+        weeks,
+      };
+    }
+    // Flat shape: group phItems by week.
     const weeksMap = {};
     for (const it of phItems) {
       const w = it.week || 1;
@@ -302,37 +396,61 @@ export function planToCurriculum(plan) {
     }
     const weeks = Object.keys(weeksMap)
       .sort((a, b) => a - b)
-      .map((w) => ({ week: Number(w), title: "", items: weeksMap[w] }));
+      .map((w) => ({ week: Number(w), title: "", items: weeksMap[w].map((it) => normItem(it, ph.id, w)) }));
     const code = String(ph.id).replace(/\D/g, "") || "0";
     return {
       id: ph.id,
       code: code.padStart(2, "0"),
       title: ph.title,
-      sub: "",
+      sub: ph.sub || "",
       weeks,
     };
   };
 
+  // Collect items per phase (for flat shape).
+  const byPhase = {};
+  for (const it of items) {
+    (byPhase[it.phaseId] = byPhase[it.phaseId] || []).push(it);
+  }
+
   const mainPhases = [];
   let bonusItems = [];
   let dsaItems = [];
-  for (const ph of phases) {
-    const phItems = byPhase[ph.id] || [];
-    const isBonus =
-      ph.id === "app-advanced" ||
-      /beyond|staff|advanced/i.test(ph.title) ||
-      (phItems.length > 0 && phItems.every((i) => i.track === "bonus"));
-    if (isBonus) {
-      bonusItems.push(...phItems);
-      continue;
+
+  if (richPhases.length) {
+    // Rich shape: walk phases -> weeks -> items.
+    for (const ph of richPhases) {
+      const allPhItems = ph.weeks.flatMap((w) => w.items || []);
+      const isBonus =
+        ph.id === "app-advanced" ||
+        /beyond|staff|advanced/i.test(ph.title || "") ||
+        (allPhItems.length > 0 && allPhItems.every((i) => i.track === "bonus"));
+      if (isBonus) {
+        for (const w of ph.weeks) for (const it of w.items || []) bonusItems.push(normItem(it, ph.id, w.week, w.title));
+        continue;
+      }
+      const dsa = allPhItems.filter((i) => i.track === "dsa");
+      const nonDsa = allPhItems.filter((i) => i.track !== "dsa");
+      if (dsa.length) dsaItems.push(...dsa.map((it) => normItem(it, ph.id)));
+      if (nonDsa.length) mainPhases.push(buildPhase(ph, nonDsa));
     }
-    const dsa = phItems.filter((i) => i.track === "dsa");
-    const nonDsa = phItems.filter((i) => i.track !== "dsa");
-    if (dsa.length) dsaItems.push(...dsa);
-    if (nonDsa.length) mainPhases.push(toPhase(ph, nonDsa));
-  }
-  for (const it of items) {
-    if (it.track === "dsa" && !dsaItems.includes(it)) dsaItems.push(it);
+  } else {
+    // Flat shape (heuristic / legacy).
+    for (const ph of phases) {
+      const phItems = byPhase[ph.id] || [];
+      const isBonus =
+        ph.id === "app-advanced" ||
+        /beyond|staff|advanced/i.test(ph.title || "") ||
+        (phItems.length > 0 && phItems.every((i) => i.track === "bonus"));
+      if (isBonus) {
+        bonusItems.push(...phItems);
+        continue;
+      }
+      const dsa = phItems.filter((i) => i.track === "dsa");
+      const nonDsa = phItems.filter((i) => i.track !== "dsa");
+      if (dsa.length) dsaItems.push(...dsa.map((it) => normItem(it, ph.id)));
+      if (nonDsa.length) mainPhases.push(buildPhase(ph, nonDsa));
+    }
   }
 
   const coreItems = items.filter((i) => i.track !== "bonus" && i.track !== "dsa");
@@ -347,7 +465,7 @@ export function planToCurriculum(plan) {
             code: "01",
             title: "Curriculum",
             sub: "",
-            weeks: [{ week: 1, title: "", items: coreItems }],
+            weeks: [{ week: 1, title: "", items: coreItems.map((it) => normItem(it, "p1", 1)) }],
           },
         ],
     bonus: {

@@ -13,6 +13,12 @@ html {
   color: #000000;
 }
 
+html.dark,
+html.dark body {
+  background: #000000;
+  color: #ffffff;
+}
+
 body {
   background: #ffffff;
   color: #000000;
@@ -177,3 +183,59 @@ h4 {
 .animate-pop {
   animation: pop 0.35s ease-out;
 }
+
+/* ============================================================
+   DARK THEME — RawBlock inverted: white-on-black.
+   The app uses literal Tailwind color utilities (bg-black,
+   text-white, border-black, bg-white, text-black, slate-*),
+   so we remap those specific tokens under .dark along with the
+   component classes. This keeps the brutalist contract intact.
+   ============================================================ */
+
+html.dark {
+  color-scheme: dark;
+}
+html.dark :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Raw color utilities → inverted */
+html.dark .bg-black { background-color: #ffffff !important; }
+html.dark .text-black { color: #ffffff !important; }
+html.dark .border-black { border-color: #ffffff !important; }
+html.dark .bg-white { background-color: #000000 !important; }
+html.dark .text-white { color: #000000 !important; }
+html.dark .border-white { border-color: #000000 !important; }
+
+/* slate scale → lightened for dark bg */
+html.dark .text-slate-900 { color: #f5f5f5 !important; }
+html.dark .text-slate-800 { color: #e8e8e8 !important; }
+html.dark .text-slate-700 { color: #d4d4d4 !important; }
+html.dark .text-slate-600 { color: #b0b0b0 !important; }
+html.dark .text-slate-500 { color: #9a9a9a !important; }
+html.dark .text-slate-400 { color: #8a8a8a !important; }
+html.dark .text-slate-300 { color: #c8c8c8 !important; }
+html.dark .border-slate-200 { border-color: #2a2a2a !important; }
+html.dark .border-slate-300 { border-color: #3a3a3a !important; }
+html.dark .bg-slate-100 { background-color: #161616 !important; }
+html.dark .bg-slate-50  { background-color: #0e0e0e !important; }
+
+/* Component classes */
+html.dark .btn { border-color: #ffffff; background-color: #ffffff; color: #000000; }
+html.dark .btn:hover { background-color: #000000; color: #ffffff; }
+html.dark .btn:active { background-color: #ffffff; color: #000000; border-color: #ffffff; }
+html.dark .btn-secondary { background-color: #000000; color: #ffffff; }
+html.dark .btn-secondary:hover { background-color: #ffffff; color: #000000; }
+html.dark .btn-ghost { color: #ffffff; }
+html.dark .card { background-color: #000000; border-color: #ffffff; }
+html.dark .input { background-color: #111111; color: #ffffff; border-color: #ffffff; }
+html.dark .input:hover { background-color: #1a1a1a; }
+html.dark .helper { color: #9a9a9a; }
+html.dark .chip { border-color: #ffffff; background-color: #000000; color: #ffffff; }
+html.dark .chip-active { background-color: #ffffff; color: #000000; }
+html.dark .list-row { border-color: #ffffff; }
+html.dark .cbx { border-color: #ffffff; background-color: #000000; }
+html.dark .cbx:checked { background-color: #ffffff; }
+
+/* Header gradient + faded utility text stay legible */
+html.dark .text-link { color: #ffffff; }

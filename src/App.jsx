@@ -306,6 +306,21 @@ export default function DeploymentTracker() {
     [startDate]
   );
 
+  // Return to the home / import screen, clearing any built plan.
+  const handleReset = useCallback(() => {
+    setHasPlan(false);
+    setCurriculum(DEFAULT_CURRICULUM);
+    setSkipped({});
+    setShowRevision(false);
+    try {
+      localStorage.removeItem(STORAGE_PLAN_KEY);
+      localStorage.removeItem(STORAGE_SKIP_KEY);
+    } catch {}
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   const handleSkip = useCallback((id) => {
     setSkipped((s) => ({ ...s, [id]: true }));
   }, []);
@@ -525,6 +540,7 @@ export default function DeploymentTracker() {
     return (
       <div className="min-h-screen bg-white text-black font-sans">
         <div className="max-w-4xl mx-auto px-5 py-10">
+          <a href="/" className="inline-block mb-4 font-mono text-xs uppercase tracking-widest text-black hover:underline underline-offset-2">← Back to Unifies</a>
           <div className="flex items-center gap-3 mb-2">
             <span className="w-10 h-10 border-[3px] border-black bg-black text-white font-bold flex items-center justify-center">
               {(sharedUser.username || sharedUser.displayName || "?").slice(0, 1).toUpperCase()}
@@ -626,10 +642,15 @@ export default function DeploymentTracker() {
       <div className="border-b border-slate-800 sticky top-0 bg-slate-950/95 backdrop-blur z-10">
         <div className="max-w-4xl mx-auto px-5 py-5">
           <div className="flex items-baseline justify-between flex-wrap gap-3">
-            <div>
+            <button
+              onClick={handleReset}
+              className="text-left focus:outline-none focus:ring-2 focus:ring-black"
+              title="Back to home — start a new curriculum"
+              aria-label="Back to home"
+            >
               <p className="font-mono text-xs tracking-[0.2em] text-black uppercase">Unifies</p>
               <h1 className="text-2xl font-display tracking-tight text-black">Your curriculum, intelligently tracked</h1>
-            </div>
+            </button>
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -682,6 +703,7 @@ export default function DeploymentTracker() {
             <span className="text-emerald-400 ml-auto">{momentum}% weekly momentum</span>
             <button onClick={() => exportProgress({ startDate, checked, checkedAt })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">Export</button>
             <button onClick={() => exportCsv({ checked, checkedAt, itemsById })} className="text-slate-400 hover:text-slate-200 underline underline-offset-2">CSV</button>
+            <button onClick={handleReset} className="text-slate-400 hover:text-slate-200 underline underline-offset-2" title="Clear this plan and start a new curriculum">New</button>
             <label className="text-slate-400 hover:text-slate-200 underline underline-offset-2 cursor-pointer">
               Import
               <input type="file" accept="application/json" onChange={onImport} className="hidden" />

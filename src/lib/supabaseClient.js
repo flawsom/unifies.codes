@@ -1,18 +1,25 @@
+// src/lib/supabaseClient.js
+// Thin wrapper that creates the Supabase client ONLY when both env vars exist.
+// If they're missing OR invalid, we degrade to guest mode (null client) instead
+// of throwing — so a misconfiguration never blanks the whole app.
 import { createClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// If env vars aren't set, we export null and the app falls back to
-// local-only (guest / localStorage) mode instead of crashing.
-export const isSupabaseConfigured = Boolean(url && anonKey);
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-export const supabase = isSupabaseConfigured
-  ? createClient(url, anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : null;
+let supabase = null;
+if (isSupabaseConfigured) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    });
+  } catch (e) {
+    // Bad key/url: fall back to guest mode rather than crashing the app.
+    console.warn("Supabase client init failed; running in guest mode.", e);
+    supabase = null;
+  }
+}
+
+export { supabase };

@@ -7,9 +7,9 @@ const KEY = "fde-tracker-theme";
 export function useTheme() {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem(KEY) || "dark";
+      return localStorage.getItem(KEY) || "light";
     } catch {
-      return "dark";
+      return "light";
     }
   });
 

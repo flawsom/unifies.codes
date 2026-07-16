@@ -641,8 +641,8 @@ export default function DeploymentTracker() {
       />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <div className="app-header border-b border-slate-800 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-5 py-5">
-          <div className="flex items-baseline justify-between flex-wrap gap-3">
+        <div className="max-w-5xl mx-auto px-4 sm:px-5 py-4 sm:py-5">
+          <div className="flex items-start justify-between flex-wrap gap-3">
             <button
               onClick={handleReset}
               className="text-left focus:outline-none focus:ring-2 focus:ring-black"
@@ -650,9 +650,9 @@ export default function DeploymentTracker() {
               aria-label="Back to home"
             >
               <p className="font-mono text-xs tracking-[0.2em] text-black uppercase">Unifies</p>
-              <h1 className="text-2xl font-display tracking-tight text-black">Your curriculum, intelligently tracked</h1>
+              <h1 className="text-lg sm:text-2xl font-display tracking-tight text-black leading-tight">Your curriculum, intelligently tracked</h1>
             </button>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-5">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="theme-toggle"

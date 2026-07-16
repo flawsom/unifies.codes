@@ -180,7 +180,9 @@ This uses [Supabase](https://supabase.com) for auth and storage — it has a fre
 1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.
 2. Once it's provisioned, go to **Project Settings → API** and copy the **Project URL** and **anon public** key.
 
-### 2. Configure environment variables
+### 2. Configure environment variables (optional â€” sign-in works out of the box)
+
+> **Sign-in is enabled by default.** The app ships with a committed public Supabase anon key, so `Sign in with Google` works immediately on any deployment with zero env setup. To use **your own** Supabase project instead (recommended for production), set the two `VITE_SUPABASE_*` variables below â€” the app picks them up automatically (build-time `VITE_*` vars, or the `/api/analyze` runtime endpoint reads `SUPABASE_URL` / `SUPABASE_ANON_KEY` server env) and upgrades to your project with no code changes.
 
 ```bash
 cp .env.example .env.local
@@ -357,7 +359,7 @@ Both guarantee that refreshing on `/?u=someone` or any deep link serves the app.
 
 ### Post-deploy checklist (account mode only)
 
-- [ ] `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` are set in the host's env UI.
+- [ ] (Optional) `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` are set in the host's env UI to use your own project. If skipped, the app still signs in via its committed public key.
 - [ ] The production URL is added to Supabase **Authentication → URL
       Configuration → Redirect URLs** (and Site URL).
 - [ ] Google provider enabled in Supabase (see "Setting up accounts" above).

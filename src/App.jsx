@@ -62,6 +62,8 @@ export default function DeploymentTracker() {
   const [hasPlan, setHasPlan] = useState(false); // has the user created/loaded a plan?
   const [showAdmin, setShowAdmin] = useState(false);
   const [skipped, setSkipped] = useState({}); // revision skips: id -> true
+  const [checked, setChecked] = useState({});
+  const [checkedAt, setCheckedAt] = useState({});
   const [showRevision, setShowRevision] = useState(false);
 
   // Derive the active item list from the (possibly user-built) curriculum.
@@ -124,8 +126,6 @@ export default function DeploymentTracker() {
   const DSA_IDS = useMemo(() => new Set(PARALLEL_TRACK.items.map((i) => i.id)), [PARALLEL_TRACK]);
 
   // Progress state
-  const [checked, setChecked] = useState({});
-  const [checkedAt, setCheckedAt] = useState({});
   const [startDate, setStartDate] = useState("");
   const [openPhase, setOpenPhase] = useState("p1");
   const [loaded, setLoaded] = useState(false);

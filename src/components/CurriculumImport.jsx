@@ -43,8 +43,8 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
   };
 
   return (
-    <div className="min-h-screen bg-white text-black px-4 py-10">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-bg text-fg px-4 py-10">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between gap-3 mb-6">
           <button
             onClick={() => onHome && onHome()}
@@ -93,7 +93,7 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
           </label>
           <textarea
             id="cur-input"
-            className="input font-mono"
+            className="input font-mono w-full"
             rows={12}
             placeholder={
               "e.g.\n\nPhase 1: Python\n- Variables and types\n- Functions\n- Object oriented programming\n\nPhase 2: Web\n- HTTP and REST\n- Build a small API"
@@ -151,7 +151,7 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
             </div>
 
             <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <div className="border-[3px] border-black p-4">
+              <div className="raw-card p-4">
                 <h3 className="font-display text-sm uppercase mb-2">Your curriculum included</h3>
                 <p className="text-sm">{preview.plan.included}</p>
                 <p className="mt-3 text-sm">
@@ -169,7 +169,7 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
                   )}
                 </p>
               </div>
-              <div className="border-[3px] border-black p-4 bg-black text-white">
+              <div className="raw-card p-4">
                 <h3 className="font-display text-sm uppercase mb-2">Unifies added</h3>
                 <p className="text-sm">{preview.plan.added}</p>
                 <p className="mt-3 text-sm">

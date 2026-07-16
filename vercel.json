@@ -8,7 +8,7 @@
                                             "value":  "no-cache, no-store, must-revalidate"
                                         }
                                     ],
-                        "source":  "/index.html"
+                        "source":  "/((?!assets/|api/|sw\\.js).*)"
                     },
                     {
                         "headers":  [

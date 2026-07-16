@@ -33,9 +33,42 @@ This creates:
 2. Create OAuth credentials in https://console.cloud.google.com → **APIs & Services → Credentials → OAuth client ID** (type: Web application).
    - Authorized redirect URI: `https://<YOUR-PROJECT-REF>.supabase.co/auth/v1/callback`
 3. Paste the **Client ID** and **Client secret** into the Supabase Google provider box → **Save**.
-4. **Authentication → URL Configuration**:
-   - Site URL: `https://unifies.codes` (or your host URL)
-   - Redirect URLs: add `https://unifies.codes` **and** `http://localhost:5173` (for local dev).
+4. In Google Cloud Console, the OAuth client's **Authorized redirect URI** must be Supabase's callback (not your app):
+   `https://<YOUR-PROJECT-REF>.supabase.co/auth/v1/callback`
+
+## Step 3.5 — Auth URL Configuration (Site URL + Redirect URLs)
+
+This is required or Google sign-in will fail after login. Go to
+**Authentication → URL Configuration** and set:
+
+- **Site URL** (the default fallback when no redirect URL matches):
+  ```
+  https://unifies.codes
+  ```
+  > For local-only testing you may temporarily use `http://localhost:5173`, but
+  > for the live app it must be the production domain `https://unifies.codes`.
+
+- **Redirect URLs** → click **Add URL** and add **both**:
+  ```
+  http://localhost:5173
+  https://unifies.codes
+  ```
+  Optionally add preview-deploy hosts so PR previews can also sign in:
+  ```
+  https://*.vercel.app
+  https://*.netlify.app
+  ```
+
+Then click **Save changes**.
+
+**Why:** after Google authenticates, Supabase redirects the user to one of these
+allowed URLs. If the post-login URL isn't in this allow-list, Supabase rejects it
+and sign-in fails. `localhost:5173` is Vite's dev port (not `3000`); `unifies.codes`
+is the deployed site.
+
+> Note: the Google-side **Authorized redirect URI** (Step 3.4) is Supabase's own
+> `/auth/v1/callback` — that is different from Supabase's **Redirect URLs** above.
+> Keep them straight: Google → Supabase callback; Supabase → your app URLs.
 
 ## Step 4 — Copy the two Supabase keys
 

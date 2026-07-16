@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback } from "react";
 import { analyzeCurriculum, planToCurriculum } from "../utils/analyze";
 import { SAMPLE_CURRICULA } from "../data/curriculum";
 import AccountBar from "./AccountBar";
+import GuestBanner from "./GuestBanner";
 
 export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSample, onHome }) {
   const [text, setText] = useState(initialText);
@@ -54,6 +55,7 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
           </button>
           <AccountBar />
         </div>
+        <GuestBanner />
         <h1 className="font-display text-h2 md:text-h1 leading-none">UNIFIES</h1>
         <p className="mt-3 text-lg max-w-xl">
           Paste any curriculum — a bootcamp syllabus, a job description, your own

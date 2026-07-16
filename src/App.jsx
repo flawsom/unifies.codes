@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspens
 import { supabase, isSupabaseConfigured } from "./lib/supabaseClient";
 import { useAuth } from "./context/AuthContext";
 import AccountBar from "./components/AccountBar";
+import GuestBanner from "./components/GuestBanner";
 import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, DEFAULT_ALL_ITEMS, SAMPLE_CURRICULA } from "./data/curriculum";
 import { analyzeCurriculum, planToCurriculum } from "./utils/analyze";
 import CurriculumImport from "./components/CurriculumImport";
@@ -754,6 +755,10 @@ export default function DeploymentTracker() {
       </div>
 
       {/* FOCUS + INSIGHTS + HEATMAP */}
+      {!user && (
+        <GuestBanner />
+      )}
+
       <div id="main" className="max-w-4xl mx-auto px-5 pt-8 space-y-6">
         <FocusView PHASES={PHASES} BONUS={BONUS} checked={checked} startDate={startDate} onToggle={toggle} onJump={scrollTo} />
 

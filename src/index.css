@@ -33,13 +33,13 @@
 }
 
 .dark {
-  --bg: 9 9 11;               /* near-black */
-  --surface: 18 18 21;        /* panels */
-  --elevated: 27 27 31;       /* popovers */
+  --bg: 6 6 8;               /* near-black */
+  --surface: 20 20 24;        /* panels */
+  --elevated: 30 31 37;       /* popovers */
   --fg: 244 244 245;          /* primary text */
   --muted: 161 161 170;       /* secondary text */
   --faint: 113 113 122;       /* tertiary text */
-  --line: 244 244 245;        /* borders invert to light in dark mode */
+  --line: 44 45 52;        /* borders invert to light in dark mode */
   --accent: 244 244 245;      /* accent = paper-white ink */
   --accent-fg: 9 9 11;        /* text on accent */
   --success: 74 222 128;
@@ -58,9 +58,9 @@
    (useTheme already applies .dark for 'system'; this is a safety net.) */
 @media (prefers-color-scheme: dark) {
   :root:not(.light):not(.dark) {
-    --bg: 9 9 11; --surface: 18 18 21; --elevated: 27 27 31;
+    --bg: 6 6 8; --surface: 18 18 21; --elevated: 27 27 31;
     --fg: 244 244 245; --muted: 161 161 170; --faint: 113 113 122;
-    --line: 244 244 245; --accent: 244 244 245; --accent-fg: 9 9 11;
+    --line: 44 45 52; --accent: 244 244 245; --accent-fg: 9 9 11;
     --success: 74 222 128; --danger: 248 113 113; --warn: 251 191 36;
     --shadow-hard: 4px 4px 0 0 rgb(244 244 245);
     --shadow-hard-sm: 2px 2px 0 0 rgb(244 244 245);
@@ -433,6 +433,16 @@
 
   /* Focus states → theme-aware */
   .focus\:bg-black:focus { background-color: rgb(var(--fg)) !important; }
+  /* Opacity variants of legacy palette -> tokens (keeps modals readable in dark) */
+  .bg-white\/90 { background-color: rgb(var(--bg) / 0.9) !important; }
+  .bg-white\/80 { background-color: rgb(var(--bg) / 0.8) !important; }
+  .bg-white\/70 { background-color: rgb(var(--bg) / 0.7) !important; }
+  .bg-black\/5 { background-color: rgb(var(--fg) / 0.05) !important; }
+  .bg-black\/10 { background-color: rgb(var(--fg) / 0.1) !important; }
+  .bg-black\/20 { background-color: rgb(var(--fg) / 0.2) !important; }
+  .border-black\/10 { border-color: rgb(var(--fg) / 0.1) !important; }
+  .border-black\/20 { border-color: rgb(var(--fg) / 0.2) !important; }
+
   .focus\:text-white:focus { color: rgb(var(--bg)) !important; }
   .focus\:ring-black:focus {
     outline: 2px solid rgb(var(--fg));

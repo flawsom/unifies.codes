@@ -10,9 +10,16 @@ export const FALLBACK_CONFIG = {
 let _override = null;
 
 export function getRuntimeConfig() {
-  if (_override) return _override;
-  const rt = typeof window !== "undefined" ? window.__UNIFIES_CONFIG__ : null;
-  return rt || FALLBACK_CONFIG;
+  const rt =
+    _override && _override.url && _override.key
+      ? _override
+      : typeof window !== "undefined"
+        ? window.__UNIFIES_CONFIG__
+        : null;
+  // Only accept a runtime override if it is a COMPLETE config; otherwise
+  // fall back to the committed Supabase project so sign-in always works.
+  if (rt && rt.url && rt.key) return rt;
+  return FALLBACK_CONFIG;
 }
 
 // Optional upgrade path: if the host sets VITE_ vars or a /api/analyze endpoint,

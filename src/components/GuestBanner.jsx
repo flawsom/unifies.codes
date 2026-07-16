@@ -14,7 +14,7 @@ export default function GuestBanner() {
     <div className="raw-card max-w-6xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3">
       <p className="text-sm text-fg leading-snug">
         <span className="font-display uppercase tracking-wide">Sign in to sync progress.</span>{" "}
-        Your plan is saved on this device only. Continue with Google to back it up, share
+        Your plan is saved on this device only — guest mode means nothing leaves your browser, no account, no tracking. Continue with Google to back it up, share
         curricula, and pick up on any device.
       </p>
       <button

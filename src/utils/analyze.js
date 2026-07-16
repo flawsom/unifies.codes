@@ -35,7 +35,7 @@ export const DEFAULT_DAILY_HOUR_BUDGET = 1; // hours/day; user can raise this
  * @property {string} [text]
  * @property {string} [phaseId]
  * @property {number} [week]
- * @property {'basic'|'intermediate'|'advanced'} [difficulty]
+ * @property {'basic'|'intermediate'|'advanced'|'mastery'} [difficulty]
  * @property {'user'|'app'} source
  * @property {boolean} [milestone]
  * @property {string} [note]
@@ -44,7 +44,10 @@ export const DEFAULT_DAILY_HOUR_BUDGET = 1; // hours/day; user can raise this
  */
 
 const DIFFICULTY_BASIC = /(basic|beginner|intro|fundament|getting started|hello world|setup|install|first|basics|101|prerequisite|pre-req)/i;
-const DIFFICULTY_ADVANCED = /(advanced|expert|staff|principal|system design|architecture|scale|distributed|production|deep dive|optimi[sz]ation|security|leadership|low.level|low level)/i;
+const DIFFICULTY_MASTERY = /(mastery|teach|explain|mentor|architect|architecture|ambiguous|novel|unsupervised|top.of.field|research|publish|tradeoff|trade-off|lead|principal|staff.level|staff level)/i;
+const DIFFICULTY_ADVANCED = /(advanced|expert|staff|system design|scale|distributed|production|deep dive|optimi[sz]ation|security|low.level|low level)/i;
+
+const TIER_RANK = { basic: 0, intermediate: 1, advanced: 2, mastery: 3 };
 
 // Subject-domain detection so taxonomy + "beyond mastery" are subject-aware.
 const DOMAIN_SIGNALS = [
@@ -90,6 +93,7 @@ function slug(s) {
 }
 
 function inferDifficulty(text) {
+  if (DIFFICULTY_MASTERY.test(text)) return "mastery";
   if (DIFFICULTY_ADVANCED.test(text)) return "advanced";
   if (DIFFICULTY_BASIC.test(text)) return "basic";
   return "intermediate";
@@ -216,18 +220,31 @@ export function heuristicStructure(raw, opts = {}) {
     const hours = parseHours(rawTitle);
     const title = stripHours(rawTitle);
     if (!title) continue;
+    const isReview = /(review|recap|revisit|spiral|refresh|reinforce)/i.test(title);
     userTopics.push({
       name: title,
       hours: hours != null ? hours : 4, // assume 4h if no estimate given
       difficulty: inferDifficulty(title),
       phaseTitle: currentPhaseTitle,
+      review: isReview,
     });
   }
 
   if (userTopics.length === 0) {
     // No parseable topics — fall back to treating the whole text as one topic.
-    userTopics.push({ name: text.slice(0, 120), hours: 4, difficulty: "intermediate", phaseTitle: null });
+    userTopics.push({ name: text.slice(0, 120), hours: 4, difficulty: "intermediate", phaseTitle: null, review: false });
   }
+
+  // Prerequisite-aware sequencing: order by tier rank (basic -> intermediate ->
+  // advanced -> mastery) so a foundational topic never lands after the advanced
+  // topic that depends on it. Original line order is the tiebreak.
+  const orderSeen = new Map();
+  userTopics.forEach((t, i) => { if (!orderSeen.has(t.name)) orderSeen.set(t.name, i); });
+  userTopics.sort((a, b) => {
+    const r = (TIER_RANK[a.difficulty] ?? 1) - (TIER_RANK[b.difficulty] ?? 1);
+    if (r !== 0) return r;
+    return (orderSeen.get(a.name) ?? 0) - (orderSeen.get(b.name) ?? 0);
+  });
 
   const { schedule, overflow, weekCount } = buildSchedule(
     userTopics.map((t) => ({ name: t.name, hours: t.hours })),
@@ -267,9 +284,22 @@ export function heuristicStructure(raw, opts = {}) {
       source: "user",
       track: "core",
       hours: t.hours,
+      review: !!t.review,
       note: t.phaseTitle ? `from ${t.phaseTitle}` : "",
     });
   });
+
+  // Coverage / traceability record: every pasted topic must map to a placement
+  // (or be logged as unplaced when the mission window overflows).
+  const placedNames = new Set(schedule.map((s) => s.topic));
+  const unplaced = userTopics.filter((t) => !placedNames.has(t.name)).map((t) => t.name);
+  const coverage = {
+    total: userTopics.length,
+    userItems: userTopics.length,
+    addedItems: 0,
+    unplaced,
+    percent: userTopics.length ? Math.round((userTopics.length - unplaced.length) / userTopics.length * 100) : 100,
+  };
 
   // Build the single "Core route" phase with week cards carrying day-level data.
   const weeks = Object.keys(weeksMap)
@@ -308,6 +338,7 @@ export function heuristicStructure(raw, opts = {}) {
     mission: { days: missionDays, activeDaysPerWeek, dailyHourBudget },
     overflow,
     schedule,
+    coverage,
   };
 }
 
@@ -369,6 +400,7 @@ export async function analyzeCurriculum(raw, opts = {}) {
           mission: data.mission || opts,
           overflow: data.overflow || { overflow: false, weekCount: 0, message: "" },
           schedule: data.schedule || [],
+          coverage: data.coverage || null,
         },
         via: "ai",
       };
@@ -386,6 +418,7 @@ export async function analyzeCurriculum(raw, opts = {}) {
       note: it.note || "",
       track: it.track || "core",
       hours: it.hours || undefined,
+      review: !!it.review,
     }));
     const phases = Array.isArray(data.phases) ? data.phases : [];
     return {
@@ -400,6 +433,7 @@ export async function analyzeCurriculum(raw, opts = {}) {
         mission: data.mission || opts,
         overflow: data.overflow || { overflow: false, weekCount: 0, message: "" },
         schedule: data.schedule || [],
+        coverage: data.coverage || null,
       },
       via: "ai",
     };
@@ -440,6 +474,7 @@ export function planToCurriculum(plan) {
     note: it.note || "",
     track: it.track || "core",
     hours: it.hours || undefined,
+    review: !!it.review,
   });
 
   const buildPhase = (ph, phItems) => {
@@ -544,6 +579,7 @@ export function planToCurriculum(plan) {
       mission: plan.mission || {},
       overflow: plan.overflow || { overflow: false, weekCount: 0, message: "" },
       schedule: plan.schedule || [],
+      coverage: plan.coverage || { total: items.length, userItems: items.filter((i) => i.source === "user").length, addedItems: items.filter((i) => i.source === "app").length, unplaced: [], percent: 100 },
     },
   };
 }

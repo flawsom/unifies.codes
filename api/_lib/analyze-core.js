@@ -25,6 +25,24 @@ Sum weeks_needed across all core-route topics. If the total exceeds the mission 
   - Set "overflow.overflow": true.
   - Only proceed with compression if forced; otherwise stop and report.
 
+STEP 2B - Classify every item into FOUR tiers (not three):
+  - "basic"        = definitions, terminology, single-concept, no combination
+  - "intermediate" = combining 2+ foundational concepts, applied exercises, standard tooling
+  - "advanced"     = edge cases, optimization, multi-system integration, debugging, design tradeoffs
+  - "mastery"      = independent problem framing, TEACHING/explaining the topic to others,
+                     architecture-level decisions, handling ambiguous/novel scenarios at the
+                     level of someone operating unsupervised at the top of the field.
+  No competitor stops at "advanced" - the mastery tier is Unifies' differentiator. At least one
+  item in a non-trivial syllabus should land in "mastery" when the subject supports it.
+
+STEP 2C - Prerequisite-aware sequencing + spiraled review.
+  - Detect prerequisite relationships where reasonably inferable (an advanced/mastery item
+    that clearly builds on a foundational one). NEVER place an item before its prerequisite.
+  - When a later Advanced/Mastery item depends on reinforcing an earlier foundational item,
+    insert a lightweight [REVIEW] callback: set that item's "review": true and label it as a
+    review (e.g., "Review: recursion before dynamic programming"). Reviews are DISTINCT from
+    new content and must NOT inflate perceived new workload - render them de-emphasized.
+
 STEP 3 - Never invent domain-generic taxonomy.
 Do NOT label tracks "DSA parallel" or "Staff-level" unless the syllabus is actually software-engineering content. Derive category/track labels FROM the subject matter (e.g., for a mathematics syllabus: "Core route", "Applied/computational extensions", "Beyond mastery" - but the CONTENT under each label must match the subject, not a fixed software template). Set "domain" to a short subject label (e.g., "Mathematics III", "Software engineering", "Data & ML").
 
@@ -42,8 +60,16 @@ Emit a top-level "schedule" array with one entry per active study day:
   { "day": number, "week": number, "topic": string, "hours": number, "cumInTopic": number }
 This is what a day-streak tracker actually needs to function.
 
-STEP 6 - Full coverage check.
-Confirm every syllabus item has been placed with an hour range and week/day assignment. Output a coverage statement in "included". 100% coverage is required before returning.
+STEP 6 - Full coverage check + traceability guarantee.
+Confirm every syllabus item has been placed with an hour range and week/day assignment.
+Emit a top-level "coverage" object:
+  { "total": <#> syllabus items detected,
+    "userItems": <#> placed as user items,
+    "addedItems": <#> you added,
+    "unplaced": [ <raw topic strings NOT placed, e.g. because of overflow> ],
+    "percent": <0-100> }
+100% coverage is required before returning. If any raw topic could NOT be placed (e.g. the
+mission window overflowed), list it in "unplaced" honestly - do NOT silently drop it.
 
 NEVER assign more than one full topic's hours to the same single week unless the math in Step 1 genuinely supports it (e.g., a light-hour topic paired with a partial week from the previous topic).
 
@@ -65,12 +91,13 @@ NEVER assign more than one full topic's hours to the same single week unless the
             {
               "id": string,
               "title": string,
-              "difficulty": "basic" | "intermediate" | "advanced",
+              "difficulty": "basic" | "intermediate" | "advanced" | "mastery",
               "source": "user" | "app",
               "track": "core" | "dsa" | "bonus",
               "milestone": boolean,
               "note": string,
-              "hours": number
+              "hours": number,
+              "review": boolean
             }
           ]
         }
@@ -82,11 +109,12 @@ NEVER assign more than one full topic's hours to the same single week unless the
   "path": string[],
   "mission": { "days": number, "activeDaysPerWeek": number, "dailyHourBudget": number },
   "overflow": { "overflow": boolean, "weekCount": number, "message": string },
-  "schedule": [ { "day": number, "week": number, "topic": string, "hours": number, "cumInTopic": number } ]
+  "schedule": [ { "day": number, "week": number, "topic": string, "hours": number, "cumInTopic": number } ],
+  "coverage": { "total": number, "userItems": number, "addedItems": number, "unplaced": [string], "percent": number }
 }
 
 === RULES ===
-- Strict tier ladder: earliest phases ~ basic, middle ~ intermediate, final ~ advanced (includes Mastery).
+- Strict tier ladder across FOUR tiers: earliest phases ~ basic, middle ~ intermediate, later ~ advanced, final ~ mastery. Every non-trivial syllabus should include at least one mastery-tier item.
 - Track "dsa" / "bonus" only when the subject genuinely has practice/mastery content; otherwise omit those phases.
 - Every week MUST have a non-empty "title" and 4-8 "items" (or fewer only if the subject is genuinely light that week - then extend practice depth).
 - Achieve 100% inventory coverage; surface any non-learning items in "included"/"added".
@@ -125,6 +153,7 @@ function normalizePlan(content) {
             milestone: !!it.milestone,
             note: it.note || "",
             hours: it.hours,
+            review: !!it.review,
           });
         }
       }
@@ -143,6 +172,7 @@ function normalizePlan(content) {
         mission: parsed.mission || {},
         overflow: parsed.overflow || { overflow: false, weekCount: 0, message: "" },
         schedule: parsed.schedule || [],
+        coverage: parsed.coverage || null,
       },
     };
   }

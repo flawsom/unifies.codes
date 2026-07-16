@@ -92,9 +92,32 @@ export default function FocusView({ PHASES, BONUS, checked, startDate, onToggle,
               aria-label={checked[item.id] ? `Uncheck ${item.text}` : `Check ${item.text}`}
             />
             <span className={checked[item.id] ? "text-faint line-through" : "text-fg"}>{item.text}</span>
+            {item.review ? (
+              <span className="rounded-sm border border-fg/40 bg-fg/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-fg/60">Review</span>
+            ) : (
+              <TierBadge difficulty={item.difficulty} />
+            )}
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+// 4-tier badge. Mastery escalates visually (distinct color + ring) so it is
+// never confused with the "advanced" tier.
+const TIER_BADGE = {
+  basic: { label: "Basic", cls: "border-fg/30 bg-fg/5 text-fg/70" },
+  intermediate: { label: "Intermediate", cls: "border-accent/50 bg-accent/10 text-accent" },
+  advanced: { label: "Advanced", cls: "border-warn/60 bg-warn/15 text-warn" },
+  mastery: { label: "Mastery", cls: "border-fg bg-black text-white ring-2 ring-accent" },
+};
+
+function TierBadge({ difficulty }) {
+  const t = TIER_BADGE[difficulty] || TIER_BADGE.basic;
+  return (
+    <span className={`rounded-sm border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${t.cls}`}>
+      {t.label}
+    </span>
   );
 }

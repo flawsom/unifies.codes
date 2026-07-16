@@ -74,8 +74,9 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
             </li>
           </ol>
           <p className="mt-3 text-xs text-slate-500">
-            No account needed — your plan is saved on this device. Continue with Google (top
-            right) to sync across devices and unlock shareable profiles.
+            <strong className="text-slate-300">Guest mode: nothing leaves your browser. No account, no tracking.</strong>
+            Your plan is saved locally on this device. Continue with Google (top right) to sync
+            across devices and unlock shareable profiles.
           </p>
         </div>
 
@@ -170,6 +171,28 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
                 </p>
               </div>
             </div>
+
+            {preview.plan.coverage && (
+              <div className="raw-card p-4 mt-4 border-accent">
+                <h3 className="font-display text-sm uppercase mb-2">Coverage guarantee</h3>
+                <p className="text-sm">
+                  <strong>{preview.plan.coverage.percent}%</strong> of your curriculum is
+                  accounted for — <strong>{preview.plan.coverage.userItems}</strong> items were yours,{" "}
+                  <strong>{preview.plan.coverage.addedItems}</strong> were added for
+                  foundational/advanced coverage.
+                </p>
+                {preview.plan.coverage.percent < 100 && preview.plan.coverage.unplaced?.length > 0 && (
+                  <p className="mt-2 text-sm text-warn">
+                    Not placed ({preview.plan.coverage.unplaced.length}): {preview.plan.coverage.unplaced.join(", ")}
+                  </p>
+                )}
+                {preview.plan.coverage.percent === 100 && (
+                  <p className="mt-2 text-sm text-success">
+                    Nothing dropped — every topic you pasted maps to a placement in your roadmap.
+                  </p>
+                )}
+              </div>
+            )}
 
             {preview.plan.path.length > 0 && (
               <div className="mt-4">

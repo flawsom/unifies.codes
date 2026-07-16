@@ -125,13 +125,15 @@ netlify env:set OPENROUTER_API_KEY "sk-or-..."
 
 After adding env vars, **redeploy** (Vercel/Netlify auto-redeploy on save; or push a commit / click "Redeploy"). The app reads the vars at build time.
 
+> **The sign-in button only appears once both `VITE_SUPABASE_*` vars are set AND the site is redeployed.** Until then the header shows a "Guest mode" note and there is no login button — that's expected, not a bug. If you added the keys but still see no "Sign in with Google", redeploy and hard-refresh.
+
 ---
 
 ## How to verify it's live
 
-1. Open the deployed URL. You should see the **Unifies import screen**.
+1. Open the deployed URL. You should see the **Unifies import screen** with a **"Sign in with Google"** button in the header (if Supabase is configured + redeployed; otherwise a "Guest mode" note).
 2. Paste a syllabus → **Analyze with Unifies AI** → it should now say **"Structured by AI"** (not "offline planner") in the gap-analysis preview.
-3. Click **Sign in with Google** → after redirect, your plan + checkmarks sync. Reload on another device → same state.
+3. Click **Sign in with Google** → after redirect, your plan + checkmarks sync. Reload on another device → same state. New users can start tracking immediately without an account; signing in just enables cross-device sync + sharing.
 4. Check an item → it appears on your `?u=<handle>` shared profile.
 
 ## Security notes

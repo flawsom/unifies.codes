@@ -43,6 +43,8 @@ create table if not exists public.progress (
   checked_at    jsonb not null default '{}'::jsonb,
   start_date    text,
   xp            integer not null default 0,
+  curriculum_json jsonb,                       -- user-built plan (Unifies)
+  skipped       jsonb not null default '{}'::jsonb, -- revision skips: id -> true
   updated_at    timestamptz not null default now()
 );
 

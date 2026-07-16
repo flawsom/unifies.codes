@@ -1,6 +1,6 @@
 # Competitive Analysis & Product Requirements
 
-> Goal: make **FDE Tracker** the best product in the "FAANG/FDE interview-prep
+> Goal: make **Unifies** the best product in the "study / curriculum / interview-prep
 > tracker + habit/study tracker" space, by (a) knowing exactly what competitors
 > do, and (b) building the features real users ask for but nobody ships.
 >
@@ -36,11 +36,14 @@
 | **PrepPilot** (OSS) | All-in-one prep platform | Track questions by company, sheets import | Company-frequency focus |
 | **FaangPrepTracker** (OSS) | Web prep tracker | Progress tracking | Minimal, fast |
 
-### C. Where FDE Tracker sits
-Your app is the **only** one that fuses (1) a *structured 90-day FDE roadmap*,
-(2) *GitHub-style heatmap + real streaks*, (3) a *command palette*, and
-(4) *shareable public profiles + leaderboard* — **with tests + CI + auto-deploy**.
-That combination is genuinely unmatched by any single competitor above.
+### C. Where Unifies sits
+Your app is the **only** one that fuses (1) *any curriculum the user brings* —
+paste text, upload a file, or load a sample — (2) an *AI gap analysis that adds
+foundational basics and advanced/staff-level depth*, (3) *beginner→advanced
+tagging in one view*, (4) *GitHub-style heatmap + real (grace-day) streaks*,
+(5) a *command palette + revision/skip mode*, and (6) *shareable public profiles
++ leaderboard* — **with tests + CI + auto-deploy**. That combination is
+genuinely unmatched by any single competitor above.
 
 ---
 
@@ -147,9 +150,11 @@ Prioritized. **P0 = differentiates + addresses a real complaint. P1 = strong ret
 - **No AI mock interviews** (NeetCode/interviewing.io). → Could embed later.
 - **No community content** (roadmap.sh). → `?u=` + leaderboard is our social layer.
 
-The wedge: competitors track *either* habits *or* prep, but **none** give a
-structured FDE *roadmap* with GitHub-style streaks, a command palette, and
-shareable public profiles — **that is the moat.** Build P0–P1 and it's best-in-class.
+The wedge: competitors track *either* habits *or* prep, but **none** let you
+bring *your own* curriculum and have an AI structure it, fill the beginner→staff
+gaps, and track it with GitHub-style streaks, a command palette, revision/skip
+mode, and shareable public profiles — **that is the moat.** Build P0–P1 and it's
+best-in-class.
 
 ---
 
@@ -177,6 +182,12 @@ MIT-licensed, free, no analytics.
 | Milestone / level-up celebrations | Done | `Toast.celebrate` fired from `App.jsx` on phase-complete |
 | Keyboard shortcuts help (⌘?) | Done | `ShortcutsHelp.jsx` — cheatsheet modal, Esc + focus trap |
 | Installable PWA + offline | Done | `vite-plugin-pwa`, workbox, SW, offline app shell |
+| **Bring-your-own curriculum** | Done | `CurriculumImport.jsx` — paste / upload / sample; import gate |
+| **AI gap analysis (basics→advanced)** | Done | `utils/analyze.js` (`analyzeCurriculum` + `planToCurriculum`), `api/analyze.js` (OpenRouter free model) + offline heuristic fallback |
+| **Highlights: you vs Unifies-added** | Done | `Highlights.jsx` + `curriculum._meta` (included/added/path) |
+| **Revision & skip (with caution)** | Done | `RevisionView.jsx` — skip with disclaimer + restore; `skipped` state |
+| **RawBlock brutalist design** | Done | `index.css` + `tailwind.config.js` — black-on-white, thick borders, Archivo Black/Work Sans/Space Mono |
+| **Rebrand to Unifies** | Done | app title, logo, README, repo `flawsom/unifies.codes`, domain `unifies.codes` |
 
 **Next (optional polish):** Cmd+K touch FAB for mobile (P2 #11); weekly-goal
 visual ring (logic done, currently numeric control); AI mock-interview embed

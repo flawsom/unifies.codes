@@ -2,47 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   RawBlock design system — brutalist, black-on-white.
+   No rounding, no shadows, thick borders, full inversions.
+   ============================================================ */
+
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  background: #ffffff;
+  color: #000000;
 }
 
-/* Visible focus ring for keyboard users (a11y) */
+body {
+  background: #ffffff;
+  color: #000000;
+  font-family: "Work Sans", system-ui, sans-serif;
+}
+
+/* Force the brutalist contract globally: zero radius, zero shadow. */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Visible focus ring for keyboard users (a11y) — RawBlock uses a thick black ring. */
 :focus-visible {
-  outline: 2px solid #f59e0b;
+  outline: 3px solid #000000;
   outline-offset: 2px;
 }
 
-/* ---- Light theme (toggled by adding `light` class to <html>) ----
-   The app is built dark-first with explicit slate utilities; for a coherent
-   light mode we remap the core surface tokens. Accent colors are kept. */
-html.light {
-  color-scheme: light;
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Archivo Black", system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
-html.light body {
-  background-color: #f1f5f9;
-  color: #0f172a;
+
+@layer components {
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 border-[3px] border-black bg-black text-white uppercase tracking-[0.08em] transition-colors;
+    font-family: "Work Sans", sans-serif;
+    cursor: pointer;
+  }
+  .btn:hover {
+    @apply bg-white text-black;
+  }
+  .btn:active {
+    @apply bg-black text-white border-[5px];
+  }
+  .btn-secondary {
+    @apply bg-white text-black;
+  }
+  .btn-secondary:hover {
+    @apply bg-black text-white;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-black border-0 underline;
+  }
+  .btn-ghost:hover {
+    @apply text-link no-underline;
+  }
+  .btn-destructive {
+    @apply bg-error text-white border-error;
+  }
+  .btn-destructive:hover {
+    @apply bg-black text-error border-black;
+  }
+  .btn-sm {
+    @apply px-4 py-1.5 text-xs;
+    min-height: 32px;
+  }
+  .btn-md {
+    @apply px-6 py-2.5 text-sm;
+    min-height: 44px;
+  }
+  .btn-lg {
+    @apply px-10 py-4 text-base;
+    min-height: 56px;
+  }
+  .btn:disabled,
+  .btn[disabled] {
+    @apply bg-[#f0f0f0] text-[#999] border-[#ccc] cursor-not-allowed;
+  }
+
+  /* ---- Cards ---- */
+  .card {
+    @apply bg-white border-[3px] border-black p-6;
+  }
+  .card-elevated {
+    @apply border-[5px];
+  }
+
+  /* ---- Inputs ---- */
+  .input {
+    @apply bg-[#f0f0f0] text-black border-[3px] border-black w-full px-3 py-2.5 font-mono text-[15px];
+  }
+  .input:hover {
+    @apply bg-[#e8e8e8];
+  }
+  .input:focus {
+    @apply border-[5px] outline-none;
+  }
+  .label {
+    @apply block font-display uppercase text-[14px] mb-1;
+  }
+  .helper {
+    @apply mt-1 text-xs text-[#444];
+  }
+
+  /* ---- Chips ---- */
+  .chip {
+    @apply inline-flex items-center border-2 border-black bg-white text-black uppercase text-[10px] tracking-[0.1em] px-2.5 py-1;
+  }
+  .chip-active {
+    @apply bg-black text-white;
+  }
+  .chip-status {
+    @apply border-2 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em];
+  }
+  .chip-active-s { @apply bg-white text-success border-success; }
+  .chip-warning { @apply bg-white text-warning border-warning; }
+  .chip-error { @apply bg-white text-error border-error; }
+  .chip-default { @apply bg-white text-black border-black; }
+
+  /* ---- Lists ---- */
+  .list-row {
+    @apply flex items-center justify-between border-b-[3px] border-black px-0 py-3;
+  }
+  .list-row:hover {
+    @apply underline;
+  }
+
+  /* ---- Checkboxes ---- */
+  .cbx {
+    @apply appearance-none w-5 h-5 border-[3px] border-black bg-white cursor-pointer;
+  }
+  .cbx:checked {
+    @apply bg-black;
+  }
+  .cbx:focus-visible {
+    @apply border-[5px];
+  }
 }
-html.light .bg-slate-950 { background-color: #f1f5f9 !important; }
-html.light .bg-slate-950\/95 { background-color: rgba(241,245,249,0.95) !important; }
-html.light .bg-slate-950\/70 { background-color: rgba(241,245,249,0.7) !important; }
-html.light .bg-slate-900 { background-color: #ffffff !important; }
-html.light .bg-slate-900\/60 { background-color: rgba(255,255,255,0.7) !important; }
-html.light .bg-slate-900\/95 { background-color: rgba(255,255,255,0.95) !important; }
-html.light .text-slate-100 { color: #0f172a !important; }
-html.light .text-slate-200 { color: #1e293b !important; }
-html.light .text-slate-300 { color: #334155 !important; }
-html.light .text-slate-400 { color: #475569 !important; }
-html.light .text-slate-500 { color: #64748b !important; }
-html.light .text-slate-600 { color: #94a3b8 !important; }
-html.light .border-slate-800 { border-color: #e2e8f0 !important; }
-html.light .border-slate-700 { border-color: #cbd5e1 !important; }
-html.light .border-slate-600 { border-color: #94a3b8 !important; }
-html.light .bg-slate-800 { background-color: #e2e8f0 !important; }
 
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
@@ -50,8 +161,19 @@ html.light .bg-slate-800 { background-color: #e2e8f0 !important; }
 }
 
 @keyframes pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  60% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
-.animate-pop { animation: pop 0.35s ease-out; }
+.animate-pop {
+  animation: pop 0.35s ease-out;
+}

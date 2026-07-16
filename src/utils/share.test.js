@@ -28,7 +28,7 @@ describe('share helpers (localStorage path)', () => {
     });
     expect(url).toContain('?u=jane');
 
-    const raw = localStorage.getItem('fde-tracker-shared-v1');
+    const raw = localStorage.getItem('unifies-shared-v1');
     expect(raw).toBeTruthy();
     const all = JSON.parse(raw);
     expect(all.jane.corePct).toBe(50);

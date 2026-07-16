@@ -289,3 +289,37 @@ export const allItems = (() => {
   }
   return out;
 })();
+
+export const DEFAULT_ALL_ITEMS = allItems;
+
+// ---------------------------------------------------------------------------
+// Unifies: the app is generic. The FDE route is one SAMPLE template the user
+// can load; the primary path is pasting their own curriculum (see utils/analyze).
+// ---------------------------------------------------------------------------
+export const SAMPLE_CURRICULA = {
+  fde: {
+    label: "FAANG / FDE 90-day route (sample)",
+    build: () => DEFAULT_CURRICULUM,
+  },
+};
+
+/**
+ * Ensure an imported/generated plan fits the tracker's item shape.
+ * @param {Array} items
+ */
+export function normalizeCurriculum(items = []) {
+  return items.map((it, i) => ({
+    id: it.id || `item-${i + 1}`,
+    title: String(it.title || "").trim(),
+    text: String(it.title || it.text || "").trim(),
+    phaseId: it.phaseId || "p1",
+    week: it.week ?? null,
+    phaseTitle: it.phaseTitle || "",
+    weekTitle: it.weekTitle || null,
+    difficulty: it.difficulty || "intermediate",
+    source: it.source === "app" ? "app" : "user",
+    milestone: !!it.milestone,
+    note: it.note || "",
+    track: it.track || "core",
+  }));
+}

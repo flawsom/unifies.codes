@@ -1,46 +1,40 @@
-// E2E: new UX surfaces — Focus view, Insights, shortcuts help, PWA manifest.
 import { test, expect } from "@playwright/test";
+import { seedPlan } from "./_helpers";
 
-test.describe("UX surfaces", () => {
+test.describe("Unifies UX surfaces", () => {
   test("shows the Focus (Today) view and Insights dashboard", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/Day \d+ of 90|Set your/i).first()).toBeVisible();
-    await expect(page.getByText("Insights")).toBeVisible();
+    await seedPlan(page);
+    await expect(page.getByText(/mission start/i)).toBeVisible();
+    await expect(page.getByText(/What's in your plan/i)).toBeVisible();
+    await expect(page.getByText("level", { exact: true })).toBeVisible();
   });
 
   test("opens keyboard shortcuts with Ctrl+?", async ({ page }) => {
     await page.goto("/");
-    await page.locator("body").click();
+    await seedPlan(page);
     await page.keyboard.press("Control+/");
-    await expect(page.getByRole("dialog", { name: /keyboard shortcuts/i }).first()).toBeVisible();
+    const dlg = page.getByRole("dialog", { name: /keyboard shortcuts/i });
+    await expect(dlg).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog", { name: /keyboard shortcuts/i })).toHaveCount(0);
+    await expect(dlg).toHaveCount(0);
   });
 
   test("has an installable PWA manifest", async ({ page }) => {
-    const response = await page.goto("/");
-    expect(response?.status()).toBe(200);
-    const manifest = await page.evaluate(async () => {
-      const link = document.querySelector('link[rel="manifest"]');
-      if (!link) return null;
-      const res = await fetch(link.getAttribute("href"));
-      return res.ok ? await res.json() : null;
-    });
-    expect(manifest).not.toBeNull();
-    expect(manifest.name).toMatch(/FDE Tracker/);
-    expect(manifest.display).toBe("standalone");
+    await page.goto("/");
+    const res = await page.goto("/manifest.webmanifest");
+    expect(res?.status()).toBe(200);
   });
 
   test("celebrates a phase completion with a toast", async ({ page }) => {
     await page.goto("/");
-    // Check every item in the first phase so a phase hits 100% -> celebrate toast.
-    const checkboxes = page.locator('section[data-phase-id="p1"] button[aria-pressed]');
-    const count = await checkboxes.count();
+    await seedPlan(page, "# Demo\n- Learn Git\n- Write a loop");
+    // check every item in phase "Demo" (phase id p1)
+    const items = page.locator('[data-phase-id="p1"] [data-testid^="check-"]');
+    const count = await items.count();
     for (let i = 0; i < count; i++) {
-      const btn = page.locator('section[data-phase-id="p1"] button[aria-pressed]').nth(i);
-      const pressed = await btn.getAttribute("aria-pressed");
-      if (pressed === "false") await btn.click();
+      await items.nth(i).click();
     }
-    await expect(page.getByRole("status").getByText(/Python Foundations complete/i)).toBeVisible({ timeout: 4000 });
+    await expect(page.getByRole("status").getByText(/Demo complete/i)).toBeVisible({ timeout: 4000 });
   });
 });

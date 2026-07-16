@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspens
 import { supabase, isSupabaseConfigured } from "./lib/supabaseClient";
 import { useAuth } from "./context/AuthContext";
 import AccountBar from "./components/AccountBar";
-import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, allItems } from "./data/curriculum";
+import { DEFAULT_PHASES, DEFAULT_BONUS, DEFAULT_PARALLEL_TRACK, DEFAULT_CURRICULUM, DEFAULT_ALL_ITEMS, SAMPLE_CURRICULA, normalizeCurriculum } from "./data/curriculum";
+import { analyzeCurriculum, planToCurriculum } from "./utils/analyze";
+import CurriculumImport from "./components/CurriculumImport";
+import RevisionView from "./components/RevisionView";
+import Highlights from "./components/Highlights";
 import {
   todayStr,
   daySetFromCheckedAt,
@@ -29,10 +33,12 @@ import { exportProgress, exportCsv, parseImport } from "./utils/io";
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 const SharePanelLazy = lazy(() => import("./components/SharePanel"));
 
-const STORAGE_KEY = "fde-tracker-v1";
-const STORAGE_AT_KEY = "fde-tracker-checkedAt-v1";
+const STORAGE_KEY = "unifies-progress-v1";
+const STORAGE_AT_KEY = "unifies-checkedAt-v1";
+const STORAGE_PLAN_KEY = "unifies-plan-v1";
+const STORAGE_SKIP_KEY = "unifies-skipped-v1";
 
-const itemsById = Object.fromEntries(allItems.map((i) => [i.id, i]));
+const ITEMS_BY_ID_DEFAULT = Object.fromEntries(DEFAULT_ALL_ITEMS.map((i) => [i.id, i]));
 
 export default function DeploymentTracker() {
   const { isSupabaseConfigured: authConfigured, authLoading, user } = useAuth();
@@ -52,7 +58,44 @@ export default function DeploymentTracker() {
 
   // Curriculum (topics)
   const [curriculum, setCurriculum] = useState(DEFAULT_CURRICULUM);
+  const [hasPlan, setHasPlan] = useState(false); // has the user created/loaded a plan?
   const [showAdmin, setShowAdmin] = useState(false);
+  const [skipped, setSkipped] = useState({}); // revision skips: id -> true
+  const [showRevision, setShowRevision] = useState(false);
+
+  // Derive the active item list from the (possibly user-built) curriculum.
+  const allItems = useMemo(() => {
+    const out = [];
+    for (const ph of curriculum.phases || []) {
+      for (const w of ph.weeks || []) {
+        for (const it of w.items || []) {
+          out.push({
+            ...it,
+            phaseId: ph.id,
+            week: w.week ?? null,
+            weekTitle: w.title || null,
+            phaseTitle: ph.title,
+          });
+        }
+      }
+    }
+    for (const it of curriculum.bonus?.weeks?.flatMap((w) => w.items || []) || []) {
+      out.push({ ...it, phaseId: curriculum.bonus.id, phaseTitle: curriculum.bonus.title });
+    }
+    for (const it of curriculum.parallelTrack?.items || []) {
+      out.push({ ...it, phaseId: curriculum.parallelTrack.id, phaseTitle: curriculum.parallelTrack.title });
+    }
+    return out;
+  }, [curriculum]);
+
+  const itemsById = useMemo(
+    () => Object.fromEntries(allItems.map((i) => [i.id, i])),
+    [allItems]
+  );
+  const activeItems = useMemo(
+    () => allItems.filter((i) => !skipped[i.id]),
+    [allItems, skipped]
+  );
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let cancelled = false;
@@ -114,10 +157,21 @@ export default function DeploymentTracker() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         const rawAt = localStorage.getItem(STORAGE_AT_KEY);
+        const planRaw = localStorage.getItem(STORAGE_PLAN_KEY);
+        const skipRaw = localStorage.getItem(STORAGE_SKIP_KEY);
         if (!cancelled) {
           setChecked(raw ? JSON.parse(raw).checked || {} : {});
           setStartDate(raw ? JSON.parse(raw).startDate || "" : "");
           setCheckedAt(rawAt ? JSON.parse(rawAt) : {});
+          if (skipRaw) setSkipped(JSON.parse(skipRaw));
+          if (planRaw) {
+            try {
+              setCurriculum(JSON.parse(planRaw));
+              setHasPlan(true);
+            } catch {
+              /* ignore bad plan */
+            }
+          }
         }
       } catch (e) {
         /* no saved state */
@@ -142,13 +196,22 @@ export default function DeploymentTracker() {
     if (user && supabase) {
       supabase
         .from("progress")
-        .select("checked, checked_at, start_date, xp")
+        .select("checked, checked_at, start_date, xp, curriculum_json, skipped")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data, error }) => {
           if (cancelled) return;
           if (!error && data) {
             applySnapshot(data.checked, data.checked_at, data.start_date);
+            if (data.skipped) setSkipped(data.skipped || {});
+            if (data.curriculum_json) {
+              try {
+                setCurriculum(data.curriculum_json);
+                setHasPlan(true);
+              } catch {
+                /* ignore */
+              }
+            }
           } else {
             applySnapshot({}, {}, "");
           }
@@ -167,7 +230,7 @@ export default function DeploymentTracker() {
   // Persist (with offline queue + visible save status)
   useEffect(() => {
     if (!loaded || sharedUser) return;
-    const xp = totalXp(checked, allItems);
+    const xp = totalXp(checked, activeItems);
 
     if (user && supabase) {
       setSaveState("saving");
@@ -180,6 +243,8 @@ export default function DeploymentTracker() {
             checked_at: checkedAt,
             start_date: startDate,
             xp,
+            curriculum_json: hasPlan ? curriculum : null,
+            skipped,
             updated_at: new Date().toISOString(),
           })
           .then(({ error }) => {
@@ -204,12 +269,52 @@ export default function DeploymentTracker() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ checked, startDate }));
       localStorage.setItem(STORAGE_AT_KEY, JSON.stringify(checkedAt));
+      if (hasPlan) localStorage.setItem(STORAGE_PLAN_KEY, JSON.stringify(curriculum));
+      localStorage.setItem(STORAGE_SKIP_KEY, JSON.stringify(skipped));
       setSaveState("saved");
       setLastSavedAt(new Date());
     } catch (e) {
       setSaveState("error");
     }
   }, [checked, checkedAt, startDate, loaded, user, sharedUser]);
+
+  // --- Unifies: plan handlers ---
+  const handleUsePlan = useCallback(
+    (curriculumObj) => {
+      setCurriculum(curriculumObj);
+      setHasPlan(true);
+      setSkipped({});
+      if (!startDate) {
+        // anchor the plan to today so streaks/heatmap start now
+        setStartDate(todayStr());
+      }
+    },
+    [startDate]
+  );
+
+  const handleLoadSample = useCallback(
+    (key) => {
+      const sample = SAMPLE_CURRICULA[key];
+      if (sample) {
+        setCurriculum(normalizeCurriculum(sample.build()));
+        setHasPlan(true);
+        setSkipped({});
+        if (!startDate) setStartDate(todayStr());
+      }
+    },
+    [startDate]
+  );
+
+  const handleSkip = useCallback((id) => {
+    setSkipped((s) => ({ ...s, [id]: true }));
+  }, []);
+  const handleRestore = useCallback((id) => {
+    setSkipped((s) => {
+      const n = { ...s };
+      delete n[id];
+      return n;
+    });
+  }, []);
 
   // Flush offline queue when connection returns.
   useEffect(() => {
@@ -224,7 +329,7 @@ export default function DeploymentTracker() {
             checked,
             checked_at: checkedAt,
             start_date: startDate,
-            xp: totalXp(checked, allItems),
+            xp: totalXp(checked, activeItems),
             updated_at: new Date().toISOString(),
           })
           .then(({ error }) => {
@@ -257,29 +362,46 @@ export default function DeploymentTracker() {
     });
   };
 
-  // Derived stats
-  const coreDone = useMemo(
-    () => Object.keys(checked).filter((k) => checked[k] && CORE_IDS.has(k)).length,
-    [checked]
+  // Derived stats (generalized over the user's curriculum; skipped items excluded)
+  const coreItems = useMemo(
+    () => activeItems.filter((i) => i.track !== "dsa" && i.track !== "bonus"),
+    [activeItems]
   );
-  const coreTotal = CORE_IDS.size;
-  const corePct = Math.round((coreDone / coreTotal) * 100);
+  const dsaItems = useMemo(
+    () => activeItems.filter((i) => i.track === "dsa"),
+    [activeItems]
+  );
+  const bonusItems = useMemo(
+    () => activeItems.filter((i) => i.track === "bonus"),
+    [activeItems]
+  );
+  const coreIds = useMemo(() => new Set(coreItems.map((i) => i.id)), [coreItems]);
+  const dsaIds = useMemo(() => new Set(dsaItems.map((i) => i.id)), [dsaItems]);
+  const bonusIds = useMemo(() => new Set(bonusItems.map((i) => i.id)), [bonusItems]);
+
+  const coreDone = Object.keys(checked).filter((k) => checked[k] && coreIds.has(k)).length;
+  const coreTotal = coreIds.size;
+  const corePct = coreTotal ? Math.round((coreDone / coreTotal) * 100) : 0;
 
   const bonusDone = Object.keys(checked).filter(
-    (k) => checked[k] && !CORE_IDS.has(k) && !DSA_IDS.has(k)
+    (k) => checked[k] && bonusIds.has(k)
   ).length;
-  const bonusTotal = BONUS.weeks.flatMap((w) => w.items).length;
+  const bonusTotal = bonusIds.size;
 
-  const dsaDone = Object.keys(checked).filter((k) => checked[k] && DSA_IDS.has(k)).length;
-  const dsaTotal = PARALLEL_TRACK.items.length;
-  const dsaPct = Math.round((dsaDone / dsaTotal) * 100);
+  const dsaDone = Object.keys(checked).filter((k) => checked[k] && dsaIds.has(k)).length;
+  const dsaTotal = dsaIds.size;
+  const dsaPct = dsaTotal ? Math.round((dsaDone / dsaTotal) * 100) : 0;
+
+  const overallTotal = activeItems.length;
+  const overallDone = Object.keys(checked).filter((k) => checked[k] && itemsById[k]).length;
+  const overallPct = overallTotal ? Math.round((overallDone / overallTotal) * 100) : 0;
 
   const daySet = useMemo(() => daySetFromCheckedAt(checkedAt), [checkedAt]);
   const streak = useMemo(() => currentStreak(daySet, 1), [daySet]); // grace day
   const longest = useMemo(() => longestStreak(daySet), [daySet]);
   const momentum = useMemo(() => momentumPercent(daySet), [daySet]);
   const heatmap = useMemo(() => buildHeatmap(checkedAt), [checkedAt]);
-  const xp = useMemo(() => totalXp(checked, allItems), [checked]);
+  const xp = useMemo(() => totalXp(checked, activeItems), [checked, activeItems]);
   const lvl = useMemo(() => levelFromXp(xp), [xp]);
 
   // Weekly goal: distinct days active in the trailing 7 days vs target.
@@ -375,12 +497,22 @@ export default function DeploymentTracker() {
   const saveStatus = useMemo(() => {
     if (sharedUser) return null;
     if (saveState === "saving") return { text: "Saving…", cls: "text-slate-500" };
-    if (saveState === "offline") return { text: "Offline — changes saved locally, will sync", cls: "text-amber-400" };
+    if (saveState === "offline") return { text: "Offline — changes saved locally, will sync", cls: "text-black" };
     if (saveState === "error") return { text: "Not saving — storage blocked", cls: "text-red-400" };
     if (saveState === "saved" && lastSavedAt)
       return { text: `Saved ✓ ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, cls: "text-emerald-400" };
     return null;
   }, [saveState, lastSavedAt, sharedUser]);
+
+  // ---- IMPORT GATE: no plan yet, and not viewing a shared profile ----
+  if (!hasPlan && !sharedUser && loaded) {
+    return (
+      <CurriculumImport
+        onUsePlan={handleUsePlan}
+        onLoadSample={handleLoadSample}
+      />
+    );
+  }
 
   // ---- SHARED (read-only) view ----
   if (sharedUser) {
@@ -390,20 +522,20 @@ export default function DeploymentTracker() {
     const sHeatmap = buildHeatmap(sharedUser.checkedAt || {});
     const myEnabled = !!(user || localStorage.getItem(STORAGE_KEY));
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      <div className="min-h-screen bg-white text-black font-sans">
         <div className="max-w-4xl mx-auto px-5 py-10">
           <div className="flex items-center gap-3 mb-2">
-            <span className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center">
+            <span className="w-10 h-10 border-[3px] border-black bg-black text-white font-bold flex items-center justify-center">
               {(sharedUser.username || sharedUser.displayName || "?").slice(0, 1).toUpperCase()}
             </span>
             <div>
-              <h1 className="text-2xl font-bold">{sharedUser.displayName || sharedUser.username}'s FDE Route</h1>
-              <p className="text-xs text-slate-500 font-mono uppercase tracking-widest">Read-only shared progress</p>
+              <h1 className="text-2xl font-display">{sharedUser.displayName || sharedUser.username}'s Unifies plan</h1>
+              <p className="text-xs text-black font-mono uppercase tracking-widest">Read-only shared progress</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-6 font-mono text-sm">
-            <span className="text-amber-400">{sCorePct}% core</span>
-            <span className="text-cyan-400">{sDsaPct}% DSA</span>
+            <span className="text-black">{sCorePct}% core</span>
+            <span className="text-black">{sDsaPct}% DSA</span>
             <span className="text-emerald-400">{sStreak}-day streak</span>
             <span className="text-slate-400">{activeLast7(daySetFromCheckedAt(sharedUser.checkedAt || {}))}/7 active</span>
             {myEnabled && (
@@ -427,7 +559,7 @@ export default function DeploymentTracker() {
             <div className="mt-3 grid grid-cols-3 gap-3 font-mono text-xs">
               <div className="bg-slate-900 border border-slate-800 rounded p-2">
                 <div className="text-slate-500">Core %</div>
-                <div className="text-amber-400">{sCorePct} vs {sharedCompare.corePct}</div>
+                <div className="text-black">{sCorePct} vs {sharedCompare.corePct}</div>
               </div>
               <div className="bg-slate-900 border border-slate-800 rounded p-2">
                 <div className="text-slate-500">DSA %</div>
@@ -456,7 +588,7 @@ export default function DeploymentTracker() {
                   <div className="space-y-2">
                     {phase.weeks.flatMap((w) => w.items).map((item) => (
                       <div key={item.id} className="flex items-start gap-3">
-                        <span className={`mt-1 w-3 h-3 rounded-sm flex-shrink-0 ${sharedUser.checked?.[item.id] ? "bg-amber-500" : "bg-slate-800"}`} />
+                        <span className={`mt-1 w-3 h-3 rounded-sm flex-shrink-0 ${sharedUser.checked?.[item.id] ? "bg-black" : "bg-slate-800"}`} />
                         <p className={`text-sm ${sharedUser.checked?.[item.id] ? "text-slate-500 line-through" : "text-slate-300"}`}>{item.text}</p>
                       </div>
                     ))}
@@ -475,8 +607,8 @@ export default function DeploymentTracker() {
 
   // ---- MAIN app ----
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[500] focus:bg-amber-500 focus:text-slate-950 focus:px-3 focus:py-1 focus:rounded">Skip to content</a>
+    <div className="min-h-screen bg-white text-black font-sans">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[500] focus:bg-black focus:text-white focus:px-3 focus:py-1 focus:rounded">Skip to content</a>
       {showAdmin && (
         <React.Suspense fallback={null}>
           <AdminPanel defaultCurriculum={DEFAULT_CURRICULUM} onClose={() => setShowAdmin(false)} />
@@ -494,8 +626,8 @@ export default function DeploymentTracker() {
         <div className="max-w-4xl mx-auto px-5 py-5">
           <div className="flex items-baseline justify-between flex-wrap gap-3">
             <div>
-              <p className="font-mono text-xs tracking-[0.2em] text-amber-400 uppercase">Deployment Log</p>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-50">FDE Readiness — 90 Day Route</h1>
+              <p className="font-mono text-xs tracking-[0.2em] text-black uppercase">Unifies</p>
+              <h1 className="text-2xl font-display tracking-tight text-black">Your curriculum, intelligently tracked</h1>
             </div>
             <div className="flex items-center gap-5">
               <button
@@ -508,7 +640,7 @@ export default function DeploymentTracker() {
               </button>
               <AccountBar onOpenAdmin={() => setShowAdmin(true)} />
               <div className="text-right" title="Percentage of the 5-phase core route you've checked off">
-                <div className="font-mono text-3xl font-bold text-amber-400 tabular-nums">{corePct}%</div>
+                <div className="font-mono text-3xl font-bold text-black tabular-nums">{corePct}%</div>
                 <div className="text-xs text-slate-500 uppercase tracking-wide">core route complete</div>
               </div>
             </div>
@@ -516,7 +648,7 @@ export default function DeploymentTracker() {
 
           {/* progress bar */}
           <div className="mt-4 h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
-            <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${corePct}%` }} />
+            <div className="h-full bg-black transition-all duration-500" style={{ width: `${corePct}%` }} />
           </div>
 
           {/* gamification bar */}
@@ -553,9 +685,23 @@ export default function DeploymentTracker() {
               Import
               <input type="file" accept="application/json" onChange={onImport} className="hidden" />
             </label>
+            <button onClick={() => setShowRevision((v) => !v)} data-testid="revision-toggle" className="text-slate-400 hover:text-slate-200 underline underline-offset-2">
+              Revision &amp; skip
+            </button>
           </div>
           {importError && <p className="mt-1 text-xs text-red-400 font-mono">{importError}</p>}
         </div>
+
+        {showRevision && (
+          <RevisionView
+            items={activeItems}
+            checked={checked}
+            skipped={skipped}
+            onSkip={handleSkip}
+            onRestore={handleRestore}
+            onClose={() => setShowRevision(false)}
+          />
+        )}
 
         {/* DEPLOYMENT ROUTE */}
         <div className="max-w-4xl mx-auto px-5 pb-5 overflow-x-auto">
@@ -568,13 +714,13 @@ export default function DeploymentTracker() {
                 <React.Fragment key={phase.id}>
                   <button onClick={() => scrollTo(phase.id)} className="flex flex-col items-center gap-2 group flex-shrink-0">
                     <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-colors
-                      ${complete ? "bg-amber-500 border-amber-500 text-slate-950" : isOpen ? "border-cyan-400 text-cyan-400" : "border-slate-700 text-slate-500 group-hover:border-slate-500"}`}>
+                      ${complete ? "bg-black border-black text-white" : isOpen ? "border-cyan-400 text-cyan-400" : "border-black text-slate-500 group-hover:border-slate-500"}`}>
                       {phase.code}
                     </div>
                     <span className={`text-[10px] uppercase tracking-wide w-20 text-center ${isOpen ? "text-cyan-400" : "text-slate-500"}`}>{phase.title}</span>
                   </button>
                   {idx < ALL_PHASES.length - 1 && (
-                    <div className={`flex-1 h-px mb-6 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-amber-500" : "bg-slate-800"}`} />
+                    <div className={`flex-1 h-px mb-6 ${phasePct(ALL_PHASES[idx]) === 100 ? "bg-black" : "bg-slate-800"}`} />
                   )}
                 </React.Fragment>
               );
@@ -603,7 +749,7 @@ export default function DeploymentTracker() {
             aria-label="Weekly active-day goal"
           />
           <span className="text-xs text-slate-500">active days / week</span>
-          <span className={`text-xs font-mono ${goalReached ? "text-emerald-400" : "text-amber-400"}`}>
+          <span className={`text-xs font-mono ${goalReached ? "text-emerald-400" : "text-black"}`}>
             {weeklyActive}/{weeklyGoal} {goalReached ? "✓" : ""}
           </span>
           {notifySupported && (
@@ -632,6 +778,8 @@ export default function DeploymentTracker() {
           lvl={lvl}
           startDate={startDate}
         />
+
+        <Highlights meta={curriculum._meta} />
 
         <ActivityHeatmap columns={heatmap} streak={streak} longest={longest} onShare={() => setShowShare(true)} />
         <React.Suspense fallback={null}>
@@ -670,7 +818,7 @@ export default function DeploymentTracker() {
                     ${checked[item.id] ? "bg-cyan-500 border-cyan-500" : "border-slate-600 hover:border-slate-400"}`}
                 >
                   {checked[item.id] && (
-                    <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
+                    <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-white"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
@@ -694,7 +842,7 @@ export default function DeploymentTracker() {
           <section key={phase.id} ref={(el) => (refs.current[phase.id] = el)} data-testid="phase-section" data-phase-id={phase.id}>
             <div className="flex items-baseline justify-between border-b border-slate-800 pb-3 mb-6">
               <div>
-                <p className="font-mono text-xs text-amber-400 tracking-widest">{phase.code}</p>
+                <p className="font-mono text-xs text-black tracking-widest">{phase.code}</p>
                 <h2 className="text-xl font-bold text-slate-50">{phase.title}</h2>
                 <p className="text-xs text-slate-500 mt-1">{phase.sub}</p>
               </div>
@@ -712,17 +860,18 @@ export default function DeploymentTracker() {
                       <li key={item.id} className="flex items-start gap-3">
                         <button
                           onClick={() => toggle(item.id)}
+                          data-testid={`check-${item.id}`}
                           aria-label={checked[item.id] ? `Uncheck ${item.text}` : `Check ${item.text}`}
                           aria-pressed={checked[item.id] || false}
                           className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors
-                            ${checked[item.id] ? "bg-amber-500 border-amber-500" : "border-slate-600 hover:border-slate-400"}`}
+                            ${checked[item.id] ? "bg-black border-black" : "border-slate-600 hover:border-slate-400"}`}
                         >
                           {checked[item.id] && (
-                            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-slate-950"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
+                            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-white"><path d="M4.5 8.5L2 6l-1 1 3.5 3.5L11 3l-1-1z" /></svg>
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : "text-slate-200"}`}>{item.text}</p>
+                          <p className={`text-sm ${checked[item.id] ? "text-slate-500 line-through" : skipped[item.id] ? "text-slate-400 line-through decoration-2" : "text-slate-200"}`}>{item.text}{skipped[item.id] && <span className="ml-2 text-[10px] uppercase tracking-widest border border-slate-500 px-1">skipped</span>}</p>
                           {item.resource && (
                             <a href={item.resource.url} target="_blank" rel="noopener noreferrer"
                               className="inline-block mt-1 text-xs font-mono text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
@@ -741,8 +890,8 @@ export default function DeploymentTracker() {
 
         {/* onboarding nudge if no mission start set */}
         {!startDate && (
-          <div className="bg-amber-500/10 border border-amber-600/40 rounded-lg p-4 text-center">
-            <p className="text-sm text-amber-300">Set your <span className="font-mono">MISSION START</span> date above to track your 90-day countdown and daily streak.</p>
+          <div className="bg-black/10 border border-black rounded-lg p-4 text-center">
+            <p className="text-sm text-black">Set your <span className="font-mono">MISSION START</span> date above to track your daily streak and momentum.</p>
           </div>
         )}
 

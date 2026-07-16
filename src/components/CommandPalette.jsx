@@ -110,14 +110,14 @@ export default function CommandPalette({ open, onClose, items, checked, onSelect
                 onMouseEnter={() => setActive(i)}
                 onClick={() => onSelect(item)}
                 className={`w-full text-left px-4 py-2 flex items-center gap-3 ${
-                  i === active ? "bg-amber-600/20" : ""
+                  i === active ? "bg-black/10" : ""
                 }`}
                 data-testid="command-palette-item"
                 data-item-id={item.id}
               >
                 <span
                   className={`w-3 h-3 rounded-sm flex-shrink-0 ${
-                    checked[item.id] ? "bg-amber-500" : "bg-slate-800"
+                    checked[item.id] ? "bg-black" : "bg-slate-800"
                   }`}
                 />
                 <span className="flex-1 min-w-0">

@@ -4,7 +4,7 @@
 // No demo/seed data is ever inserted — snapshots come only from real users.
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
 
-const SHARED_KEY = "fde-tracker-shared-v1";
+const SHARED_KEY = "unifies-shared-v1";
 
 // Build a live snapshot from the user's real progress. Pure — no I/O.
 export function buildSnapshot({ checked, checkedAt, corePct, dsaPct, xp }) {

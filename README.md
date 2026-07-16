@@ -1,28 +1,33 @@
-# FDE Deployment Tracker
+# Unifies
 
-A 90-day interactive study tracker for becoming a Forward Deployed Engineer — Python fundamentals through Docker/Kubernetes, enterprise auth, RAG/agents, a continuous DSA practice track (LeetCode/Codeforces/HackerRank), and a staff-level "Beyond Day 90" bonus phase.
+**Turn any curriculum into a smart, trackable study plan — from absolute beginner to staff-level.**
 
-Two modes:
+Unifies is a free, open-source study tracker. Paste *your* curriculum (a bootcamp syllabus, a job description, your own notes, or load the FAANG/FDE sample) and Unifies uses an AI (or a built-in offline planner) to structure it, fill the gaps with foundational basics and advanced/staff-level depth, and give you a trackable roadmap with streaks, heatmaps, insights, revision mode, and shareable profiles.
 
 - **Guest mode** (no setup): progress is saved in your browser only (`localStorage`). No account, no backend.
-- **Account mode** (optional, via [Supabase](https://supabase.com)): sign in with Google, your progress syncs to the cloud per-account, and admins get a control panel to edit the curriculum, manage accounts, and view/edit anyone's progress.
+- **Account mode** (optional, via [Supabase](https://supabase.com)): sign in with Google, your plan + progress syncs to the cloud per-account.
 
 The app auto-detects which mode to run in based on whether Supabase env vars are set — nothing breaks if you skip the setup below.
 
+Hosted at **[unifies.codes](https://unifies.codes)** · Open source at **[github.com/flawsom/unifies.codes](https://github.com/flawsom/unifies.codes)**
+
 <!-- STATUS -->
 
-![tests](https://img.shields.io/badge/tests-46/46%20passing-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-65.73%25-blue)
+![tests](https://img.shields.io/badge/tests-53/53%20passing-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-n%2Fa-blue)
 ![ci](https://img.shields.io/badge/CI-GitHub%20Actions-9cf)
 
-> _Status auto-generated from the Vitest run: **46/46 tests passing** across **7 file(s)**, **65.73%** line coverage. This block is updated by CI — do not edit by hand._
+> _Status auto-generated from the Vitest run: **53/53 tests passing** across **12 file(s)**, **n/a** line coverage. This block is updated by CI — do not edit by hand._
 
 <!-- /STATUS -->
 
 ## Features
 
-- **90-day FDE route** — a deployment-log style progress tracker across 5 phases (Python → Cloud/K8s → Integration → AI stack → Portfolio), plus a continuous DSA track and a staff-level "Beyond Day 90" bonus track.
-- **Focus (Today) view** — anchors on your mission-start date to show the current plan day, the phase/week you're in, and the next unchecked item to tackle, so you always know what to do next.
+- **Bring your own curriculum** — paste raw text, upload a `.txt`/`.md`/`.csv`/`.json` file, or load the FAANG/FDE sample. Not locked to one path.
+- **AI gap analysis** — Unifies (a free LLM via the `/api/analyze` serverless function, or a built-in offline planner) structures your curriculum, then **adds** what's missing: absolute basics for a true beginner and advanced/staff-level depth to reach the top. It shows exactly what *you* included vs what *Unifies added*, plus a recommended path.
+- **Beginner → advanced, in one view** — every item is tagged basic / intermediate / advanced, so you see the full ladder from "set up your editor" to "design for scale".
+- **Revision & skip (with caution)** — walk through what you haven't done. Confident you already know something? Skip it — but only after a clear caution that skipped items leave your tracker and can't be tested or counted. You can restore anytime.
+- **Focus (Today) view** — anchors on your mission-start date to show the current plan day, the phase/week you're in, and the next unchecked item to tackle.
 - **Insights dashboard** — per-track completion bars, overall completion with an ahead/on/behind-plan pace estimate, a 14-day activity sparkline, and your live level / XP / momentum.
 - **GitHub-style activity heatmap + real streak counter** — every checkbox records a `checkedAt` timestamp, so the heatmap and current/longest streak are computed from genuine history, not reconstructed from localStorage. The streak has a one-day grace window so a single missed day doesn't wipe motivation.
 - **Command palette (⌘K / Ctrl+K)** — fuzzy-jump to any of the ~106 curriculum items across every phase, week, and topic. Fully keyboard-operable with focus trapping.
@@ -34,8 +39,8 @@ The app auto-detects which mode to run in based on whether Supabase env vars are
 - **Installable PWA + offline** — install to desktop/mobile; the app shell works offline and queues your checkboxes while disconnected, flushing on reconnect.
 - **Opt-in notifications** — a single, non-spammy weekly-goal reminder you can disable anytime.
 - **Import / export** — export your real progress as JSON or CSV; import to migrate from other trackers. No lock-in.
-- **Light / dark theme** — toggle or follow the OS; respects `prefers-reduced-motion`.
-- **Per-account cloud sync** (optional) — sign in with Google; progress (including timestamps) syncs to Supabase and survives device switches.
+- **Light / dark theme** — toggle or follow the OS; respects `prefers-reduced-motion`. (The default look is the RawBlock brutalist design system: black-on-white, thick borders, zero rounding.)
+- **Per-account cloud sync** (optional) — sign in with Google; your plan + progress syncs to Supabase and survives device switches.
 - **Admin panel** — edit the live curriculum, manage accounts, and view/edit anyone's progress.
 - **Accessibility-first** — skip-to-content link, ARIA roles, focus traps in modals, visible focus rings, reduced-motion support.
 - **Tested codebase** — pure progress-stat helpers and components are covered by Vitest + Testing Library; an end-to-end Playwright suite covers the command palette, share flow, and UX surfaces.
@@ -46,9 +51,19 @@ The app auto-detects which mode to run in based on whether Supabase env vars are
 
 This section is a complete walkthrough. You don't need to read the setup sections above to start — **open the app and begin immediately** in guest mode.
 
-### 1. First launch — set your mission start
+### 0. Bring your curriculum (first thing)
 
-When you open the app for the first time you'll see a short onboarding nudge. Click **"Set mission start"** and pick the day you begin the 90-day route. This anchors:
+On first launch you'll see the **Unifies import screen**. You have three options:
+
+- **Paste your curriculum** — drop in a syllabus, job description, or your own notes as plain text / markdown / CSV.
+- **Upload a file** — `.txt`, `.md`, `.csv`, or `.json`.
+- **Load the FAANG/FDE sample** — a ready-made 90-day route, if you just want to see how it works.
+
+Click **"Analyze with Unifies AI"**. Unifies structures your text, then shows a **gap analysis**: what *your* curriculum already covered vs what Unifies **added** (foundational basics + advanced/staff-level gaps), plus a recommended path. Click **"Use this plan"** to start tracking. No AI key configured? It quietly uses the built-in offline planner instead — same result, no network.
+
+### 1. Set your mission start
+
+After your plan loads you'll see a short onboarding nudge. Click **"Set mission start"** and pick the day you begin. This anchors:
 
 - the **Today / Focus view** (what day you're on and what to do next),
 - your **streak** and **activity heatmap**,
@@ -60,13 +75,7 @@ You can change it anytime from the header or the Focus view.
 
 Each curriculum item is a checkbox. Click it to mark it done — the app records the **exact time** (`checkedAt`) you completed it and shows a live **XP** gain. Click again to undo.
 
-Everything is organized into:
-
-- **Phases 1–5** — Python → Cloud/K8s → Integration → AI stack → Portfolio.
-- **DSA track** — a continuous LeetCode / Codeforces / HackerRank practice lane you keep going all 90 days.
-- **Bonus track** — staff-level "Beyond Day 90" topics for going further than the bar.
-
-Use the **parallel track** section to keep DSA and core work side by side rather than forcing one order.
+Everything is organized into the phases Unifies built from **your** curriculum (plus any foundations / advanced gaps it added). Items are tagged **basic / intermediate / advanced** so you can see the full ladder. There's also a **practice/DSA track** and a **"Beyond mastery" bonus** section when relevant.
 
 ### 3. The Focus (Today) view
 
@@ -99,6 +108,17 @@ Press **⌘K** (macOS) or **Ctrl+K** (Windows/Linux) to fuzzy-search **all ~106 
 ### 7. Keyboard shortcuts (⌘? / Ctrl+?)
 
 Press **⌘?** or **Ctrl+?** (also **/**) to open a cheatsheet of every shortcut. Escape closes it.
+
+### 7b. Revision & skip (with caution)
+
+In the header, click **"Revision & skip"**. Unifies walks you through everything you haven't checked off yet. If you're *genuinely* confident you've already mastered an item, click **"I know this — skip"**. A **caution dialog** appears first, making clear that skipped items:
+
+- leave your active tracker and your streak,
+- are **not** counted toward completion,
+- won't be surfaced for practice or testing,
+- should only be skipped if you truly know them.
+
+If you're unsure, just keep the item — checking it later is always safer than skipping something you half-know. You can **restore** any skipped item anytime.
 
 ### 8. Theme
 
@@ -169,9 +189,17 @@ cp .env.example .env.local
 Fill in `.env.local`:
 
 ```
+# Optional — account mode (leave blank to run in guest mode)
 VITE_SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-public-key
+
+# Optional — Unifies AI analysis (serverless function only; never sent to browser)
+# Get a FREE key at https://openrouter.ai/keys (no cost on the free models).
+OPENROUTER_API_KEY=sk-or-...
 ```
+
+Without `OPENROUTER_API_KEY`, the app still works: the `/api/analyze` function
+returns 501 and the frontend uses its built-in **offline planner** instead of an LLM.
 
 Restart `npm run dev` after editing this file.
 
@@ -253,9 +281,10 @@ click through.
 3. Vercel fills in the preset: **Framework Preset = Vite**, **Build Command =
    `npm run build`**, **Output Directory = `dist`**. (The `vercel.json` already
    declares these, so they'll match.)
-4. **Environment Variables** (only needed for account mode — skip otherwise):
-   - `VITE_SUPABASE_URL` = `https://YOUR-REF.supabase.co`
-   - `VITE_SUPABASE_ANON_KEY` = your anon key
+4. **Environment Variables** (all optional — the app runs without any):
+   - `VITE_SUPABASE_URL` = `https://YOUR-REF.supabase.co` (account mode)
+   - `VITE_SUPABASE_ANON_KEY` = your anon key (account mode)
+   - `OPENROUTER_API_KEY` = your free OpenRouter key (enables the AI analyzer; without it, the offline planner is used)
    Add them under **Project → Settings → Environment Variables**. Set them for
    **Production, Preview, and Development** so both the live site and preview
    deploys get them.
@@ -271,6 +300,7 @@ vercel --prod     # promote to production
 # Add env vars non-interactively:
 vercel env add VITE_SUPABASE_URL production
 vercel env add VITE_SUPABASE_ANON_KEY production
+vercel env add OPENROUTER_API_KEY production
 ```
 
 **A3. SPA routing & headers.** `vercel.json` already contains:
@@ -297,10 +327,10 @@ file, both declaring the SPA fallback + headers, so Netlify "just works."
    existing project** → select this repo.
 3. **Build command = `npm run build`**, **Publish directory = `dist`**.
    (`netlify.toml` already sets these, so they'll be pre-filled.)
-4. **Environment variables** (account mode only): **Site configuration →
-   Environment variables → Add a variable** for `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY`. Set the value for **all deploy contexts** (Production,
-   Deploy Previews, Branch deploys).
+4. **Environment variables** (all optional): **Site configuration →
+   Environment variables → Add a variable** for `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY`. Set the value for **all
+   deploy contexts** (Production, Deploy Previews, Branch deploys).
 5. Click **Deploy site**. You get a `*.netlify.app` URL; add a custom domain under
    **Domain settings**.
 
@@ -313,6 +343,7 @@ netlify deploy --prod --dir=dist
 # Env vars:
 netlify env:set VITE_SUPABASE_URL "https://YOUR-REF.supabase.co"
 netlify env:set VITE_SUPABASE_ANON_KEY "your-anon-key"
+netlify env:set OPENROUTER_API_KEY "sk-or-..."
 ```
 
 **B3. SPA routing & headers.** Two safeguards exist:
@@ -367,29 +398,30 @@ the service-role key.
 ### Project Structure
 
 ```
-fde-tracker/
+unifies.codes/
 ├─ index.html                 # Vite entry, app title/favicon/theme-color
 ├─ vite.config.js             # React + VitePWA + Vitest config
-├─ vercel.json                # Vercel build + SPA rewrite + headers
-├─ netlify.toml               # Netlify build + SPA redirect + headers
-├─ .env.example               # documents the two VITE_SUPABASE_* vars
+├─ vercel.json                # Vercel build + SPA rewrite + headers + function
+├─ netlify.toml               # Netlify build + SPA redirect + headers + function
+├─ api/analyze.js             # Vercel serverless AI analyzer (OpenRouter free model)
+├─ netlify/functions/analyze.js  # Netlify equivalent
+├─ .env.example               # documents VITE_SUPABASE_* + OPENROUTER_API_KEY
 ├─ public/
-│  ├─ icon.svg / favicon.svg  # PWA + tab icons
+│  ├─ icon.svg / favicon.svg  # PWA + tab icons (Unifies "U" mark)
 │  └─ _redirects              # Netlify SPA fallback (copied to dist/)
 ├─ src/
 │  ├─ main.jsx                # Auth + Toast providers
-│  ├─ App.jsx                 # orchestrator: state, save machine, ⌘K/⌘?
-│  ├─ data/curriculum.js      # phases, weeks, DSA + bonus tracks
-│  ├─ utils/                  # progressStats, share, io (pure, tested)
+│  ├─ App.jsx                 # orchestrator: import gate, save machine, ⌘K/⌘?
+│  ├─ data/curriculum.js      # generic curriculum model + FAANG/FDE sample
+│  ├─ utils/                  # analyze (AI + heuristic), progressStats, share, io
 │  ├─ hooks/                  # useTheme, useNotifications, useFocusTrap
-│  ├─ components/             # FocusView, Insights, ActivityHeatmap,
-│  │                          #   CommandPalette, SharePanel, ShortcutsHelp,
-│  │                          #   Toast, AdminPanel, ...
+│  ├─ components/             # CurriculumImport, RevisionView, Highlights,
+│  │                          #   FocusView, Insights, ActivityHeatmap,
+│  │                          #   CommandPalette, SharePanel, ShortcutsHelp, Toast
 │  └─ *.test.js / *.test.jsx  # colocated unit + component tests
-├─ e2e/                       # Playwright specs (palette, share, ux)
+├─ e2e/                       # Playwright specs (import, palette, share, ux)
 ├─ docs/COMPETITIVE_REQUIREMENTS.md
-├─ scripts/update-readme.js   # regenerates the README status block
-└─ supabase/schema.sql        # profiles + progress tables + RLS
+├─ supabase/schema.sql        # profiles + progress (with curriculum_json, skipped)
 ```
 
 ## Notes

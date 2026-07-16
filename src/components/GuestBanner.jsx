@@ -21,7 +21,7 @@ export default function GuestBanner() {
         onClick={signInWithGoogle}
         className="btn whitespace-nowrap"
         data-testid="signin-btn"
-        disabled={!authConfigured}
+        disabled={!isSupabaseConfigured}
       >
         Continue with Google
       </button>

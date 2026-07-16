@@ -99,6 +99,47 @@ export async function runAnalyze(body, env) {
     // Strip accidental code fences if the model added them.
     const cleaned = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const parsed = JSON.parse(cleaned);
+
+    // Accept EITHER shape:
+    //  - Rich (preferred): parsed.phases[].weeks[].items[]
+    //  - Flat (legacy): parsed.items[]
+    const hasRich = Array.isArray(parsed.phases) && parsed.phases.some((p) => Array.isArray(p.weeks) && p.weeks.length);
+    if (hasRich) {
+      // Normalize the rich week-grouped shape into the flat {phases, items}
+      // form the frontend already consumes.
+      const flatItems = [];
+      const phases = parsed.phases.map((ph) => {
+        const weeks = ph.weeks || [];
+        for (const w of weeks) {
+          for (const it of w.items || []) {
+            flatItems.push({
+              id: it.id || `${ph.id}-${flatItems.length}`,
+              title: it.title,
+              phaseId: ph.id,
+              week: w.week,
+              difficulty: it.difficulty || "basic",
+              source: it.source === "app" ? "app" : "user",
+              track: it.track || "core",
+              milestone: !!it.milestone,
+              note: it.note || "",
+            });
+          }
+        }
+        return { id: ph.id, title: ph.title };
+      });
+      return {
+        status: 200,
+        json: {
+          title: parsed.title || "My Curriculum",
+          phases,
+          items: flatItems,
+          included: parsed.included || "",
+          added: parsed.added || "",
+          path: Array.isArray(parsed.path) ? parsed.path : [],
+        },
+      };
+    }
+
     if (!Array.isArray(parsed.items)) {
       return { status: 502, json: { error: "bad_shape" } };
     }

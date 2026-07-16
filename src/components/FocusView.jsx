@@ -1,6 +1,3 @@
-// Focus view ("Today"): a daily digest derived from the mission-start date.
-// Shows where you are in the 90-day plan, the current week's items, and a
-// suggested next unchecked item. Pure live-data computation.
 import React from "react";
 
 // Map a 1-based plan day to the phase + week index in the curriculum.
@@ -27,9 +24,9 @@ function locate(planDay, PHASES) {
 export default function FocusView({ PHASES, BONUS, checked, startDate, onToggle, onJump }) {
   if (!startDate) {
     return (
-      <div className="bg-slate-900/60 border border-amber-700/40 rounded-lg p-4 text-center">
-        <p className="text-sm text-amber-300">
-          Set your <span className="font-mono">MISSION START</span> date to unlock your daily focus plan.
+      <div className="raw-card-sm p-4 text-center animate-fade-in">
+        <p className="text-sm text-warn font-mono">
+          Set your <span className="font-bold">MISSION START</span> date to unlock your daily focus plan.
         </p>
       </div>
     );
@@ -40,8 +37,8 @@ export default function FocusView({ PHASES, BONUS, checked, startDate, onToggle,
   const planDay = Math.max(1, Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1);
   if (planDay > 90) {
     return (
-      <div className="bg-slate-900/60 border border-emerald-700/40 rounded-lg p-4 text-center">
-        <p className="text-sm text-emerald-300">🎉 You've completed the 90-day route. Keep the streak alive and tackle the Beyond-Day-90 track!</p>
+      <div className="raw-card-sm p-4 text-center animate-fade-in">
+        <p className="text-sm text-success font-mono">🎉 You've completed the 90-day route. Keep the streak alive and tackle the Beyond-Day-90 track!</p>
       </div>
     );
   }
@@ -56,53 +53,51 @@ export default function FocusView({ PHASES, BONUS, checked, startDate, onToggle,
   const suggested = unchecked[0];
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-4">
-      <div className="flex items-baseline justify-between mb-3">
-        <div>
-          <p className="font-mono text-xs text-amber-400 tracking-widest uppercase">Day {planDay} of 90</p>
-          <h2 className="text-lg font-bold text-slate-50">
-            {phase.title} · Week {week.week}
-          </h2>
-          <p className="text-xs text-slate-500">{week.title}</p>
+    <section className="raw-card p-4 sm:p-5 animate-fade-in" aria-label="Daily focus">
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div className="min-w-0">
+          <p className="raw-label text-warn tracking-widest">Day {planDay} of 90</p>
+          <h2 className="raw-h text-h2 mt-0.5 truncate">{phase.title} · Week {week.week}</h2>
+          <p className="text-xs text-muted">{week.title}</p>
         </div>
-        <div className="text-right">
-          <div className="font-mono text-lg text-cyan-400">
+        <div className="text-right shrink-0">
+          <div className="font-mono text-lg text-fg tabular-nums">
             {week.items.length - unchecked.length}/{week.items.length}
           </div>
-          <div className="text-[11px] uppercase text-slate-500">done this week</div>
+          <div className="raw-tag">done this week</div>
         </div>
       </div>
 
       {suggested ? (
         <button
           onClick={() => onToggle(suggested.id)}
-          className="w-full text-left bg-amber-500/10 border border-amber-600/40 rounded p-3 hover:bg-amber-500/20 transition"
+          className="raw-card-sm w-full text-left p-3 hover:shadow-hard transition-shadow"
         >
-          <span className="text-[11px] uppercase text-amber-400 font-mono">Suggested next</span>
-          <div className="text-sm text-slate-100 mt-1">{suggested.text}</div>
+          <span className="raw-label text-warn">Suggested next</span>
+          <div className="text-sm text-fg mt-1">{suggested.text}</div>
           {suggested.resource && (
-            <span className="text-xs font-mono text-cyan-400 underline underline-offset-2">
+            <span className="text-xs font-mono text-accent underline underline-offset-2">
               {suggested.resource.label} →
             </span>
           )}
         </button>
       ) : (
-        <p className="text-sm text-emerald-300">✅ Week complete — jump to the next phase or push the DSA parallel track.</p>
+        <p className="text-sm text-success font-mono">✅ Week complete — jump to the next phase or push the DSA parallel track.</p>
       )}
 
-      <ul className="mt-3 space-y-1">
+      <ul className="mt-4 space-y-1.5">
         {week.items.map((item) => (
-          <li key={item.id} className="flex items-center gap-2 text-sm">
+          <li key={item.id} className="flex items-center gap-2.5 text-sm">
             <button
               onClick={() => onToggle(item.id)}
               aria-pressed={checked[item.id] || false}
-              className={`w-3.5 h-3.5 rounded-sm flex-shrink-0 ${checked[item.id] ? "bg-amber-500" : "border border-slate-600 hover:border-slate-400"}`}
+              className="raw-check"
               aria-label={checked[item.id] ? `Uncheck ${item.text}` : `Check ${item.text}`}
             />
-            <span className={checked[item.id] ? "text-slate-500 line-through" : "text-slate-300"}>{item.text}</span>
+            <span className={checked[item.id] ? "text-faint line-through" : "text-fg"}>{item.text}</span>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

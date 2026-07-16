@@ -173,6 +173,31 @@ npm run dev
 
 Then open the URL it prints (usually `http://localhost:5173`). This works immediately in guest mode.
 
+## Environment variables
+
+All variables are **optional** — the app runs in **guest mode** with zero setup, and
+sign-in works out of the box via a committed public Supabase anon key. Copy the template
+and fill only what you need:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable                  | Scope            | Required? | Purpose                                                                 |
+| ------------------------- | ---------------- | --------- | ----------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | Browser (build) | Optional  | Your own Supabase project URL. Overrides the bundled key. Blank = guest. |
+| `VITE_SUPABASE_ANON_KEY` | Browser (build) | Optional  | Your Supabase anon/public key (RLS protects data). Blank = guest.       |
+| `OPENROUTER_API_KEY`     | Serverless only | Optional  | Free LLM key for `/api/analyze` AI gap analysis. Blank = offline planner. |
+| `OPENROUTER_MODEL`       | Serverless only | Optional  | Override the free model used by `/api/analyze`.                         |
+| `SUPABASE_URL`           | Server (runtime)| Optional  | Server-side fallback read by `/api/analyze` (no `VITE_` prefix needed). |
+| `SUPABASE_ANON_KEY`      | Server (runtime)| Optional  | Server-side fallback read by `/api/analyze`.                            |
+
+> **Guest mode** = no backend, no accounts; progress lives in `localStorage`.
+> **Account mode** = set the two `VITE_SUPABASE_*` vars; sign-in + cloud sync activate.
+> Restart `npm run dev` after editing `.env.local`. For production hosts, set the same
+> vars in the Vercel/Netlify dashboard (see [Deploy](#deploy-to-a-static-host-vercel-or-netlify)).
+> Theme preference is stored client-side under `localStorage['fde-tracker-theme']`
+> (`light` / `dark` / `system`) and is **not** an env var.
 ## Setting up accounts (Google OAuth + admin panel)
 
 This uses [Supabase](https://supabase.com) for auth and storage — it has a free tier and needs no server of your own. For a copy-paste walkthrough that also covers the AI key and host env vars, see **[docs/SETUP_LIVE.md](./docs/SETUP_LIVE.md)**.
@@ -182,9 +207,9 @@ This uses [Supabase](https://supabase.com) for auth and storage — it has a fre
 1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**.
 2. Once it's provisioned, go to **Project Settings → API** and copy the **Project URL** and **anon public** key.
 
-### 2. Configure environment variables (optional â€” sign-in works out of the box)
+### 2. Configure environment variables (optional — sign-in works out of the box)
 
-> **Sign-in is enabled by default.** The app ships with a committed public Supabase anon key, so `Sign in with Google` works immediately on any deployment with zero env setup. To use **your own** Supabase project instead (recommended for production), set the two `VITE_SUPABASE_*` variables below â€” the app picks them up automatically (build-time `VITE_*` vars, or the `/api/analyze` runtime endpoint reads `SUPABASE_URL` / `SUPABASE_ANON_KEY` server env) and upgrades to your project with no code changes.
+> **Sign-in is enabled by default.** The app ships with a committed public Supabase anon key, so `Sign in with Google` works immediately on any deployment with zero env setup. To use **your own** Supabase project instead (recommended for production), set the two `VITE_SUPABASE_*` variables below — the app picks them up automatically (build-time `VITE_*` vars, or the `/api/analyze` runtime endpoint reads `SUPABASE_URL` / `SUPABASE_ANON_KEY` server env) and upgrades to your project with no code changes.
 
 ```bash
 cp .env.example .env.local
@@ -456,13 +481,4 @@ End-to-end tests cover the command palette, share flow, theme, and the UX surfac
 ```bash
 npx playwright install chromium   # one-time browser download
 npm run e2e                       # run against a production preview build
-```
 
-## Continuous Integration & Deployment
-
-`.github/workflows/ci.yml` runs on every push/PR:
-- **test** — Vitest unit suite **with coverage** (report uploaded as an artifact)
-- **e2e** — Playwright suite against a production preview build
-- **build** — produces the deployable `dist/` artifact
-
-So a broken build or a regressed command palette fails CI before it reaches `main`. Deployment to the live site is handled by Vercel/Netlify when you connect the repo (see the deploy section above).

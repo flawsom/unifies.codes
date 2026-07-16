@@ -1,320 +1,442 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   RawBlock design system — brutalist, black-on-white.
-   No rounding, no shadows, thick borders, full inversions.
-   ============================================================ */
+/* =========================================================================
+   UNIFIES — Design tokens
+   One brutalist system, flawless in light AND dark. All component colors
+   derive from these variables; nothing is hardcoded per-theme in JSX.
+   ========================================================================= */
+:root {
+  --bg: 247 247 245;          /* page background — warm off-white */
+  --surface: 255 255 255;     /* cards / panels */
+  --elevated: 255 255 255;    /* popovers above surface */
+  --fg: 17 17 17;             /* primary text */
+  --muted: 90 90 88;          /* secondary text */
+  --faint: 140 140 136;       /* tertiary text */
+  --line: 17 17 17;           /* hard borders (brutalist) */
+  --accent: 17 17 17;         /* accent = ink in light mode */
+  --accent-fg: 255 255 255;   /* text on accent */
+  --success: 22 119 57;       /* green */
+  --danger: 185 28 28;        /* red */
+  --warn: 161 98 7;           /* amber */
 
-html {
-  scroll-behavior: smooth;
-  background: #ffffff;
-  color: #000000;
+  --radius: 0px;              /* brutalist: hard corners */
+  --shadow-hard: 4px 4px 0 0 rgb(17 17 17);
+  --shadow-hard-sm: 2px 2px 0 0 rgb(17 17 17);
+  --shadow-hard-lg: 6px 6px 0 0 rgb(17 17 17);
+  --shadow-focus: rgb(17 17 17 / 0.35);
+
+  color-scheme: light;
 }
 
-html.dark,
-html.dark body {
-  background: #000000;
-  color: #ffffff;
+.dark {
+  --bg: 9 9 11;               /* near-black */
+  --surface: 18 18 21;        /* panels */
+  --elevated: 27 27 31;       /* popovers */
+  --fg: 244 244 245;          /* primary text */
+  --muted: 161 161 170;       /* secondary text */
+  --faint: 113 113 122;       /* tertiary text */
+  --line: 244 244 245;        /* borders invert to light in dark mode */
+  --accent: 244 244 245;      /* accent = paper-white ink */
+  --accent-fg: 9 9 11;        /* text on accent */
+  --success: 74 222 128;
+  --danger: 248 113 113;
+  --warn: 251 191 36;
+
+  --shadow-hard: 4px 4px 0 0 rgb(244 244 245);
+  --shadow-hard-sm: 2px 2px 0 0 rgb(244 244 245);
+  --shadow-hard-lg: 6px 6px 0 0 rgb(244 244 245);
+  --shadow-focus: rgb(244 244 245 / 0.4);
+
+  color-scheme: dark;
 }
 
-body {
-  background: #ffffff;
-  color: #000000;
-  font-family: "Work Sans", system-ui, sans-serif;
+/* When the OS prefers dark but the user hasn't chosen, mirror .dark tokens.
+   (useTheme already applies .dark for 'system'; this is a safety net.) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    --bg: 9 9 11; --surface: 18 18 21; --elevated: 27 27 31;
+    --fg: 244 244 245; --muted: 161 161 170; --faint: 113 113 122;
+    --line: 244 244 245; --accent: 244 244 245; --accent-fg: 9 9 11;
+    --success: 74 222 128; --danger: 248 113 113; --warn: 251 191 36;
+    --shadow-hard: 4px 4px 0 0 rgb(244 244 245);
+    --shadow-hard-sm: 2px 2px 0 0 rgb(244 244 245);
+    --shadow-hard-lg: 6px 6px 0 0 rgb(244 244 245);
+    color-scheme: dark;
+  }
 }
 
-/* Force the brutalist contract globally: zero radius, zero shadow. */
-*,
-*::before,
-*::after {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
+@layer base {
+  * {
+    border-color: rgb(var(--line));
+    /* Brutalist: flatten every radius to the single --radius token. */
+    border-radius: 0 !important;
+  }
 
-/* Visible focus ring for keyboard users (a11y) — RawBlock uses a thick black ring. */
-:focus-visible {
-  outline: 3px solid #000000;
-  outline-offset: 2px;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: "Archivo Black", system-ui, sans-serif;
-  letter-spacing: -0.01em;
+  body {
+    background-color: rgb(var(--bg));
+    color: rgb(var(--fg));
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* Thematic, visible focus for keyboard users (a11y). */
+  :focus-visible {
+    outline: 3px solid rgb(var(--accent));
+    outline-offset: 2px;
+    box-shadow: var(--shadow-focus);
+  }
+
+  ::selection {
+    background: rgb(var(--accent));
+    color: rgb(var(--accent-fg));
+  }
+
+  /* Brutalist scrollbars that adapt to theme. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgb(var(--line));
+    border: 3px solid rgb(var(--bg));
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
-  /* ---- Buttons ---- */
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 border-[3px] border-black bg-black text-white uppercase tracking-[0.08em] transition-colors;
-    font-family: "Work Sans", sans-serif;
-    cursor: pointer;
+  /* ---- Core brutalist building blocks (token-driven, theme-aware) ---- */
+  .raw-card {
+    @apply bg-surface border-2 border-line shadow-hard;
   }
-  .btn:hover {
-    @apply bg-white text-black;
+  .raw-card-sm {
+    @apply bg-surface border-2 border-line shadow-hard-sm;
   }
-  .btn:active {
-    @apply bg-black text-white border-[5px];
-  }
-  .btn-secondary {
-    @apply bg-white text-black;
-  }
-  .btn-secondary:hover {
-    @apply bg-black text-white;
-  }
-  .btn-ghost {
-    @apply bg-transparent text-black border-0 underline;
-  }
-  .btn-ghost:hover {
-    @apply text-link no-underline;
-  }
-  .btn-destructive {
-    @apply bg-error text-white border-error;
-  }
-  .btn-destructive:hover {
-    @apply bg-black text-error border-black;
-  }
-  .btn-sm {
-    @apply px-4 py-1.5 text-xs;
-    min-height: 32px;
-  }
-  .btn-md {
-    @apply px-6 py-2.5 text-sm;
-    min-height: 44px;
-  }
-  .btn-lg {
-    @apply px-10 py-4 text-base;
-    min-height: 56px;
-  }
-  .btn:disabled,
-  .btn[disabled] {
-    @apply bg-[#f0f0f0] text-[#999] border-[#ccc] cursor-not-allowed;
+  .raw-elevated {
+    @apply bg-elevated border-2 border-line shadow-hard-lg;
   }
 
-  /* ---- Cards ---- */
-  .card {
-    @apply bg-white border-[3px] border-black p-6;
+  .raw-btn {
+    @apply inline-flex items-center justify-center gap-2 bg-surface border-2 border-line
+           px-3 py-2 font-mono text-xs uppercase tracking-wider text-fg
+           transition-[transform,box-shadow] duration-100
+           hover:-translate-x-[1px] hover:-translate-y-[1px]
+           active:translate-x-[2px] active:translate-y-[2px];
+    box-shadow: var(--shadow-hard-sm);
   }
-  .card-elevated {
-    @apply border-[5px];
-  }
-
-  /* ---- Inputs ---- */
-  .input {
-    @apply bg-[#f0f0f0] text-black border-[3px] border-black w-full px-3 py-2.5 font-mono text-[15px];
-  }
-  .input:hover {
-    @apply bg-[#e8e8e8];
-  }
-  .input:focus {
-    @apply border-[5px] outline-none;
-  }
-  .label {
-    @apply block font-display uppercase text-[14px] mb-1;
-  }
-  .helper {
-    @apply mt-1 text-xs text-[#444];
+  .raw-btn:active {
+    box-shadow: 0 0 0 0;
   }
 
-  /* ---- Chips ---- */
-  .chip {
-    @apply inline-flex items-center border-2 border-black bg-white text-black uppercase text-[10px] tracking-[0.1em] px-2.5 py-1;
+  .raw-btn-accent {
+    @apply inline-flex items-center justify-center gap-2 bg-accent border-2 border-line
+           px-3 py-2 font-mono text-xs uppercase tracking-wider text-accent-fg
+           transition-[transform,box-shadow] duration-100
+           hover:-translate-x-[1px] hover:-translate-y-[1px]
+           active:translate-x-[2px] active:translate-y-[2px];
+    box-shadow: var(--shadow-hard-sm);
   }
-  .chip-active {
-    @apply bg-black text-white;
-  }
-  .chip-status {
-    @apply border-2 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em];
-  }
-  .chip-active-s { @apply bg-white text-success border-success; }
-  .chip-warning { @apply bg-white text-warning border-warning; }
-  .chip-error { @apply bg-white text-error border-error; }
-  .chip-default { @apply bg-white text-black border-black; }
-
-  /* ---- Lists ---- */
-  .list-row {
-    @apply flex items-center justify-between border-b-[3px] border-black px-0 py-3;
-  }
-  .list-row:hover {
-    @apply underline;
+  .raw-btn-accent:active {
+    box-shadow: 0 0 0 0;
   }
 
-  /* ---- Checkboxes ---- */
-  .cbx {
-    @apply appearance-none w-5 h-5 border-[3px] border-black bg-white cursor-pointer;
+  .raw-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-transparent
+           px-3 py-2 font-mono text-xs uppercase tracking-wider text-muted
+           hover:text-fg hover:border-line transition-colors duration-100;
   }
-  .cbx:checked {
-    @apply bg-black;
+
+  .raw-input {
+    @apply w-full bg-bg border-2 border-line px-3 py-2 font-mono text-sm text-fg
+           placeholder:text-faint
+           focus:outline-none focus:shadow-hard-sm transition-shadow;
   }
-  .cbx:focus-visible {
-    @apply border-[5px];
+
+  .raw-chip {
+    @apply inline-flex items-center gap-1.5 border-2 border-line bg-surface
+           px-2.5 py-1 font-mono text-xs uppercase tracking-wider text-fg;
+  }
+  .raw-chip-on {
+    @apply bg-accent text-accent-fg;
+  }
+
+  .raw-label {
+    @apply font-mono text-xs uppercase tracking-widest text-muted;
+  }
+
+  .raw-stat {
+    @apply font-mono text-display leading-none text-fg tabular-nums;
+  }
+
+  .raw-kbd {
+    @apply inline-flex items-center justify-center border-2 border-line bg-bg
+           px-1.5 py-0.5 font-mono text-[11px] text-fg min-w-[1.5rem];
+  }
+
+  .raw-rule {
+    @apply border-t-2 border-line;
+  }
+
+  .raw-tag {
+    @apply font-mono text-[10px] uppercase tracking-widest text-faint;
+  }
+
+  .raw-badge {
+    @apply inline-flex items-center justify-center border-2 border-line bg-accent
+           text-accent-fg font-mono text-[10px] uppercase tracking-widest px-1.5 py-0.5;
+  }
+
+  /* Checkbox: square, brutalist, theme-aware. */
+  .raw-check {
+    @apply appearance-none w-5 h-5 border-2 border-line bg-bg shrink-0
+           checked:bg-accent checked:border-line relative cursor-pointer
+           transition-colors;
+  }
+  .raw-check:checked::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(45deg, transparent 45%, rgb(var(--accent-fg)) 45%, rgb(var(--accent-fg)) 55%, transparent 55%),
+                      linear-gradient(-45deg, transparent 45%, rgb(var(--accent-fg)) 45%, rgb(var(--accent-fg)) 55%, transparent 55%);
+    background-size: 50% 50%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* Mono meta line. */
+  .raw-meta {
+    @apply font-mono text-xs text-muted;
+  }
+
+  /* Section heading. */
+  .raw-h {
+    @apply font-display font-bold text-fg tracking-tight;
   }
 }
 
-/* Respect reduced-motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
-}
-
-@keyframes pop {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
+  /* Staggered entrance for lists (used with animation-delay inline). */
+  .enter {
+    animation: slide-up 220ms ease-out both;
   }
-  60% {
-    transform: scale(1.05);
-    opacity: 1;
+  /* Prevent layout shift from scrollbars on centered modals. */
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
+  /* Respect notched devices (iPhone safe areas). */
+  .safe-b {
+    padding-bottom: env(safe-area-inset-bottom);
   }
-}
-.animate-pop {
-  animation: pop 0.35s ease-out;
+  .safe-t {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Mobile floating action button (req: P2 #11). */
+  .fab {
+    position: fixed;
+    z-index: 50;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    display: none;
+    border-radius: 9999px !important;
+  }
+  @media (max-width: 640px) {
+    .fab {
+      display: inline-flex;
+    }
+  }
 }
 
 /* ============================================================
-   RAWBLOCK THEME SYSTEM
-   Strict palette per design spec:
-     Black #000, White #FFF, Blue #0000FF (links only),
-     Success #008000, Warning #FFA500, Error #FF0000.
-   The app was authored with Tailwind slate/cyan/fuchsia/emerald/
-   amber utilities. We remap those to the RawBlock palette at the
-   CSS layer so every component conforms without rewriting JSX.
-
-   LIGHT (default): black-on-white brutalist.
-   DARK (html.dark): full inversion â€” white-on-black brutalist.
+   Legacy aliases — kept so components that still use the old
+   .card / .btn / .input vocabulary render flawlessly in BOTH
+   themes. All values derive from the RawBlock token system so
+   light + dark stay in sync automatically.
    ============================================================ */
-
-:root {
-  --rb-bg: #ffffff;
-  --rb-fg: #000000;
-  --rb-border: #000000;
-  --rb-muted: #333333;
-  --rb-sunken: #f0f0f0;
-  --rb-sunken-hover: #e8e8e8;
-  --rb-link: #0000ff;
-  --rb-success: #008000;
-  --rb-warning: #ffa500;
-  --rb-error: #ff0000;
-  --rb-disabled-border: #cccccc;
-  --rb-disabled-fill: #f5f5f5;
-}
-html.dark {
-  --rb-bg: #000000;
-  --rb-fg: #ffffff;
-  --rb-border: #ffffff;
-  --rb-muted: #bdbdbd;
-  --rb-sunken: #141414;
-  --rb-sunken-hover: #1f1f1f;
-  --rb-link: #4d4dff;
-  --rb-success: #00b300;
-  --rb-warning: #ffb733;
-  --rb-error: #ff4d4d;
-  --rb-disabled-border: #555555;
-  --rb-disabled-fill: #0f0f0f;
-  color-scheme: dark;
-}
-html.dark :focus-visible { outline-color: var(--rb-border); }
-
-html { background: var(--rb-bg); color: var(--rb-fg); }
-body { background: var(--rb-bg); color: var(--rb-fg); font-family: "Work Sans", system-ui, sans-serif; }
-
-.bg-black { background-color: var(--rb-fg) !important; }
-.text-black { color: var(--rb-fg) !important; }
-.border-black { border-color: var(--rb-border) !important; }
-.bg-white { background-color: var(--rb-bg) !important; }
-.text-white { color: var(--rb-bg) !important; }
-.border-white { border-color: var(--rb-bg) !important; }
-
-.bg-slate-950 { background-color: var(--rb-bg) !important; }
-.bg-slate-900, .bg-slate-900/60, .bg-slate-800, .bg-slate-800/60, .bg-slate-700, .bg-slate-700/50 {
-.bg-slate-100, .bg-slate-50 {
-  background-color: var(--rb-bg) !important;
-}
-.border-slate-950, .border-slate-900, .border-slate-800, .border-slate-700,
-.border-slate-600, .border-slate-500, .border-slate-400, .border-slate-300,
-.border-slate-200 {
-  border-color: var(--rb-border) !important;
-}
-.text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700,
-.text-slate-600, .text-slate-500, .text-slate-400, .text-slate-300,
-.text-slate-200, .text-slate-100, .text-slate-50 {
-  color: var(--rb-fg) !important;
-}
-.hover\:text-slate-200:hover, .hover\:text-slate-300:hover { color: var(--rb-fg) !important; }
-.placeholder-slate-600::placeholder { color: var(--rb-muted) !important; }
-
-.text-emerald-400, .text-emerald-300 { color: var(--rb-success) !important; }
-.bg-emerald-400, .bg-emerald-50, .bg-emerald-700, .bg-emerald-900 { background-color: var(--rb-success) !important; }
-.border-emerald-400, .border-emerald-300, .border-emerald-600, .border-emerald-800, .border-emerald-700 { border-color: var(--rb-success) !important; }
-
-.text-amber-400, .text-amber-300, .text-amber-600 { color: var(--rb-warning) !important; }
-.bg-amber-50, .bg-amber-600, .bg-amber-950 { background-color: var(--rb-warning) !important; }
-.border-amber-400, .border-amber-50, .border-amber-600, .border-amber-700, .border-amber-900 { border-color: var(--rb-warning) !important; }
-.ring-amber-400 { --tw-ring-color: var(--rb-warning) !important; }
-
-.text-red-400, .text-red-300, .text-red-600 { color: var(--rb-error) !important; }
-.bg-red-50, .bg-red-600 { background-color: var(--rb-error) !important; }
-.border-red-50, .border-red-400 { border-color: var(--rb-error) !important; }
-
-.text-cyan-400, .text-cyan-300 { color: var(--rb-link) !important; }
-.text-fuchsia-400 { color: var(--rb-fg) !important; }
-.bg-cyan-50, .bg-cyan-600, .bg-cyan-950, .bg-fuchsia-50 { background-color: transparent !important; }
-.border-cyan-400, .border-cyan-50, .border-cyan-900, .border-fuchsia-400, .border-fuchsia-50 { border-color: var(--rb-border) !important; }
-.ring-cyan-600 { --tw-ring-color: var(--rb-border) !important; }
-.bg-cyan-50, .bg-fuchsia-50 { border: 3px solid var(--rb-border) !important; }
-
-.btn { border-color: var(--rb-border); background-color: var(--rb-fg); color: var(--rb-bg); }
-.btn:hover { background-color: var(--rb-bg); color: var(--rb-fg); }
-.btn:active { background-color: var(--rb-fg); color: var(--rb-bg); border-width: 5px; }
-.btn-secondary { background-color: var(--rb-bg); color: var(--rb-fg); }
-.btn-secondary:hover { background-color: var(--rb-fg); color: var(--rb-bg); }
-.btn-ghost { color: var(--rb-fg); }
-.btn-ghost:hover { color: var(--rb-link); }
-.btn-danger { background-color: var(--rb-error); color: #ffffff; }
-.btn-danger:hover { background-color: #000000; color: var(--rb-error); }
-.card { background-color: var(--rb-bg); border-color: var(--rb-border); }
-.input { background-color: var(--rb-sunken); color: var(--rb-fg); border-color: var(--rb-border); }
-.input:hover { background-color: var(--rb-sunken-hover); }
-.input:focus { border-width: 5px; outline: none; }
-.helper { color: var(--rb-muted); }
-.chip { border-color: var(--rb-border); background-color: var(--rb-bg); color: var(--rb-fg); }
-.chip-active { background-color: var(--rb-fg); color: var(--rb-bg); }
-.list-row { border-color: var(--rb-border); }
-.cbx { border-color: var(--rb-border); background-color: var(--rb-bg); }
-.cbx:checked { background-color: var(--rb-fg); }
-.link, a { color: var(--rb-link); }
-
-
-/* Card surfaces visible in light mode (RawBlock sunken #F0F0F0) */
-.bg-slate-900, .bg-slate-900/60, .bg-slate-800, .bg-slate-800/60, .bg-slate-700, .bg-slate-700/50 { background-color: var(--rb-sunken) !important; }
-.app-header {
-  background-color: var(--rb-bg);
-  border-bottom: 3px solid var(--rb-border);
-  color: var(--rb-fg);
+@layer components {
+  .card {
+    @apply rounded-none border border-line bg-surface text-fg;
+    box-shadow: var(--shadow-hard);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-none border border-fg bg-fg px-3 py-2 text-sm font-semibold text-bg transition-[transform,box-shadow];
+    box-shadow: var(--shadow-hard);
+  }
+  .btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: calc(var(--shadow-hard-x) + 1px) calc(var(--shadow-hard-y) + 1px) 0 0 var(--shadow-hard-color);
+  }
+  .btn:active {
+    transform: translate(var(--shadow-hard-x), var(--shadow-hard-y));
+    box-shadow: 0 0 0 0 var(--shadow-hard-color);
+  }
+  .btn:focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+  .btn-accent {
+    @apply border-accent bg-accent text-accent-fg;
+  }
+  .input {
+    @apply rounded-none border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition;
+  }
+  .input::placeholder {
+    @apply text-faint;
+  }
+  .input:focus {
+    @apply border-fg;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-none border border-line bg-surface px-2 py-1 text-xs font-medium text-muted;
+  }
+  .chip-on {
+    @apply border-accent bg-accent text-accent-fg;
+  }
+  .helper {
+    @apply text-xs text-faint;
+  }
+  .link {
+    @apply text-fg underline decoration-line decoration-2 underline-offset-2 transition hover:decoration-fg;
+  }
+  .modal {
+    @apply fixed inset-0 z-40 flex items-center justify-center p-4;
+  }
+  .overlay {
+    @apply fixed inset-0 z-40 bg-bg/70 backdrop-blur-sm;
+  }
 }
 
-.theme-toggle {
-  font-family: "Space Mono", monospace;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border: 3px solid var(--rb-border);
-  background: var(--rb-bg);
-  color: var(--rb-fg);
-  padding: 6px 14px;
-  cursor: pointer;
+/* ============================================================
+   Keyframes — referenced by components via animate-* utilities.
+   ============================================================ */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.theme-toggle:hover { background: var(--rb-fg); color: var(--rb-bg); }
+@keyframes pop {
+  0% { transform: scale(0.96); opacity: 0; }
+  60% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes flash {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================
+   THEME ALIAS LAYER
+   Components still using Tailwind's default palette
+   (slate / cyan / fuchsia / emerald / red / amber / black /
+   white) are remapped onto the RawBlock tokens so they render
+   FLAWLESSLY in BOTH light and dark — without per-file rewrites.
+   `!important` guarantees these win over the generated utilities.
+   The monochrome accent (ink↔paper) is used for all brand color,
+   while semantic success / danger / warn are preserved.
+   ============================================================ */
+@layer utilities {
+  /* Base ink/paper inversion */
+  .bg-white { background-color: rgb(var(--bg)) !important; }
+  .text-black { color: rgb(var(--fg)) !important; }
+  .bg-black { background-color: rgb(var(--fg)) !important; }
+  .text-white { color: rgb(var(--bg)) !important; }
+  .border-black { border-color: rgb(var(--fg)) !important; }
+  .bg-black\/10 { background-color: rgb(var(--fg) / 0.1) !important; }
+  .fill-white { fill: rgb(var(--accent-fg)) !important; }
+
+  /* Neutral surfaces / borders / text */
+  .bg-slate-900,
+  .bg-slate-800 { background-color: rgb(var(--surface)) !important; }
+  .bg-slate-900\/60 { background-color: rgb(var(--surface) / 0.6) !important; }
+  .border-slate-800,
+  .border-slate-700,
+  .border-slate-600,
+  .border-slate-500 { border-color: rgb(var(--line)) !important; }
+  .text-slate-50,
+  .text-slate-100,
+  .text-slate-200,
+  .text-slate-300 { color: rgb(var(--fg)) !important; }
+  .text-slate-400,
+  .text-slate-500 { color: rgb(var(--muted)) !important; }
+  .text-slate-600 { color: rgb(var(--faint)) !important; }
+
+  /* Brand accent (monochrome ink↔paper) */
+  .text-cyan-400,
+  .text-cyan-300,
+  .text-fuchsia-400,
+  .text-sky-400,
+  .text-indigo-400 { color: rgb(var(--accent)) !important; }
+  .bg-cyan-500,
+  .bg-fuchsia-500,
+  .bg-sky-500 { background-color: rgb(var(--accent)) !important; }
+  .border-cyan-400,
+  .border-cyan-500 { border-color: rgb(var(--accent)) !important; }
+  .border-cyan-900\/50 { border-color: rgb(var(--accent) / 0.4) !important; }
+
+  /* Semantic status colors */
+  .text-emerald-400,
+  .text-green-400 { color: rgb(var(--success)) !important; }
+  .text-red-400,
+  .text-red-500 { color: rgb(var(--danger)) !important; }
+  .text-amber-600,
+  .text-amber-500,
+  .text-yellow-500 { color: rgb(var(--warn)) !important; }
+  .bg-amber-600,
+  .bg-amber-500 { background-color: rgb(var(--warn)) !important; }
+
+  /* Focus states → theme-aware */
+  .focus\:bg-black:focus { background-color: rgb(var(--fg)) !important; }
+  .focus\:text-white:focus { color: rgb(var(--bg)) !important; }
+  .focus\:ring-black:focus {
+    outline: 2px solid rgb(var(--fg));
+    outline-offset: 2px;
+    box-shadow: none !important;
+  }
+}

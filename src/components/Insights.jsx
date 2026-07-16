@@ -1,18 +1,15 @@
-// Insights dashboard: deep analytics over the user's real progress.
-// Pure presentation — all numbers come from props (live data only).
-import React from "react";
 import { momentumPercent } from "../utils/progressStats";
 
-function Bar({ label, value, total, color }) {
+function Bar({ label, value, total, colorClass }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="font-mono text-slate-300">{value}/{total}</span>
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="raw-label">{label}</span>
+        <span className="font-mono text-xs text-fg tabular-nums">{value}/{total}</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-        <div className="h-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      <div className="h-2.5 bg-line/20 overflow-hidden">
+        <div className={`h-full transition-all duration-300 ${colorClass}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -53,44 +50,44 @@ export default function Insights({
   );
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-4 space-y-5">
-      <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Insights</h2>
+    <section className="raw-card p-4 sm:p-5 space-y-5 animate-fade-in" aria-label="Insights">
+      <h2 className="raw-h text-h3 uppercase tracking-tight">Insights</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Bar label="Core route" value={coreDone} total={coreTotal} color="#f59e0b" />
-        <Bar label="DSA parallel" value={dsaDone} total={dsaTotal} color="#22d3ee" />
-        <Bar label="Staff-level" value={bonusDone} total={bonusTotal} color="#a78bfa" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Bar label="Core route" value={coreDone} total={coreTotal} colorClass="bg-accent" />
+        <Bar label="DSA parallel" value={dsaDone} total={dsaTotal} colorClass="bg-success" />
+        <Bar label="Staff-level" value={bonusDone} total={bonusTotal} colorClass="bg-warn" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-400">Overall completion</span>
-            <span className="font-mono text-slate-300">{overall}%</span>
+          <div className="flex items-baseline justify-between mb-1">
+            <span className="raw-label">Overall completion</span>
+            <span className="font-mono text-xs text-fg tabular-nums">{overall}%</span>
           </div>
-          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-            <div className="h-full bg-emerald-500" style={{ width: `${overall}%` }} />
+          <div className="h-2.5 bg-line/20 overflow-hidden">
+            <div className="h-full bg-success transition-all duration-300" style={{ width: `${overall}%` }} />
           </div>
         </div>
         <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-400">90-day pace</span>
-            <span className="font-mono text-slate-300">{pace}%</span>
+          <div className="flex items-baseline justify-between mb-1">
+            <span className="raw-label">90-day pace</span>
+            <span className="font-mono text-xs text-fg tabular-nums">{pace}%</span>
           </div>
-          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-            <div className="h-full bg-fuchsia-500" style={{ width: `${pace}%` }} />
+          <div className="h-2.5 bg-line/20 overflow-hidden">
+            <div className="h-full bg-accent transition-all duration-300" style={{ width: `${pace}%` }} />
           </div>
         </div>
       </div>
 
       {/* 14-day activity sparkline */}
       <div>
-        <div className="text-xs text-slate-400 mb-2">Last 14 days</div>
+        <div className="raw-label mb-2">Last 14 days</div>
         <div className="flex items-end gap-1 h-12">
           {last14.map((v, i) => (
             <div
               key={i}
-              className={`flex-1 rounded-sm ${v ? "bg-emerald-500" : "bg-slate-800"}`}
+              className={`flex-1 transition-colors ${v ? "bg-success" : "bg-line/20"}`}
               style={{ height: v ? "100%" : "20%" }}
               title={v ? "active" : "rest"}
             />
@@ -98,20 +95,20 @@ export default function Insights({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-6 font-mono text-sm">
+      <div className="flex flex-wrap gap-6 font-mono">
         <div>
-          <div className="text-2xl font-bold text-fuchsia-400">{lvl.level}</div>
-          <div className="text-[11px] uppercase text-slate-500">level</div>
+          <div className="raw-stat text-2xl">{lvl.level}</div>
+          <div className="raw-tag mt-1">level</div>
         </div>
         <div>
-          <div className="text-2xl font-bold text-slate-200">{xp}</div>
-          <div className="text-[11px] uppercase text-slate-500">xp</div>
+          <div className="raw-stat text-2xl">{xp}</div>
+          <div className="raw-tag mt-1">xp</div>
         </div>
         <div>
-          <div className="text-2xl font-bold text-emerald-400">{momentum}%</div>
-          <div className="text-[11px] uppercase text-slate-500">weekly momentum</div>
+          <div className="raw-stat text-2xl">{momentum}%</div>
+          <div className="raw-tag mt-1">weekly momentum</div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

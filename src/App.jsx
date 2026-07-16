@@ -949,6 +949,17 @@ export default function DeploymentTracker() {
             Instagram
           </a>
         </footer>
+
+        {/* MOBILE FAB — quick jump to any item (req: P2 #11). Hidden on >=sm. */}
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="fab raw-btn raw-btn-accent h-14 w-14 items-center justify-center"
+          aria-label="Open quick jump"
+          title="Jump to any item (⌘K)"
+          data-testid="mobile-fab"
+        >
+          <span className="text-xl leading-none">⌘</span>
+        </button>
       </div>
     </div>
   );

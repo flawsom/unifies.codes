@@ -1,63 +1,90 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
-    // RawBlock: every corner is square, there are no shadows.
-    borderRadius: {
-      none: "0",
-      sm: "0",
-      DEFAULT: "0",
-      md: "0",
-      lg: "0",
-      xl: "0",
-      "2xl": "0",
-      "3xl": "0",
-      full: "0",
-    },
-    boxShadow: {
-      none: "none",
-      DEFAULT: "none",
-      sm: "none",
-      md: "none",
-      lg: "none",
-      xl: "none",
-      "2xl": "none",
-    },
     extend: {
+      // Semantic color tokens are driven by CSS variables (see src/index.css).
+      // This lets a single class (e.g. `bg-surface`) flip cleanly between light
+      // and dark without any component-level conditional styling.
       colors: {
-        // RawBlock palette
-        black: "#000000",
-        white: "#FFFFFF",
-        link: "#0000FF", // hyperlinks only
-        success: "#008000",
-        warning: "#FFA000",
-        error: "#FF0000",
-        // Remap the existing `slate` tokens so the whole app flips to a
-        // black-on-white brutalist look WITHOUT touching every JSX class.
-        // (The app was dark-first; we invert the scale: 950=white bg, 100=black text.)
-        slate: {
-          50: "#000000",
-          100: "#000000",
-          200: "#111111",
-          300: "#222222",
-          400: "#444444",
-          500: "#666666",
-          600: "#888888",
-          700: "#000000",
-          800: "#000000",
-          900: "#FFFFFF",
-          950: "#FFFFFF",
-        },
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        elevated: "rgb(var(--elevated) / <alpha-value>)",
+        fg: "rgb(var(--fg) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        faint: "rgb(var(--faint) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        "accent-fg": "rgb(var(--accent-fg) / <alpha-value>)",
+        success: "rgb(var(--success) / <alpha-value>)",
+        danger: "rgb(var(--danger) / <alpha-value>)",
+        warn: "rgb(var(--warn) / <alpha-value>)",
       },
       fontFamily: {
-        display: ['"Archivo Black"', "system-ui", "sans-serif"],
-        sans: ['"Work Sans"', "system-ui", "sans-serif"],
-        mono: ['"Space Mono"', "ui-monospace", "monospace"],
+        display: ['"Space Grotesk"', "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ['"Inter"', "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       fontSize: {
-        h1: ["64px", { lineHeight: "1.0" }],
-        h2: ["48px", { lineHeight: "1.05" }],
-        h3: ["32px", { lineHeight: "1.1" }],
+        // Brutalist display scale — tight, intentional, scannable.
+        "display": ["clamp(2rem, 6vw, 3.25rem)", { lineHeight: "1.02", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "h1": ["clamp(1.5rem, 4vw, 2.25rem)", { lineHeight: "1.05", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "h2": ["clamp(1.25rem, 3vw, 1.5rem)", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "700" }],
+        "h3": ["1.0625rem", { lineHeight: "1.2", fontWeight: "700" }],
+        "lede": ["1.0625rem", { lineHeight: "1.5" }],
+      },
+      borderRadius: {
+        // Brutalist: hard edges everywhere. Single radius token, no soft pills.
+        none: "0",
+        sm: "var(--radius)",
+        DEFAULT: "var(--radius)",
+        md: "var(--radius)",
+        lg: "var(--radius)",
+        xl: "var(--radius)",
+        "2xl": "var(--radius)",
+        "3xl": "var(--radius)",
+        full: "var(--radius)",
+      },
+      borderWidth: {
+        DEFAULT: "2px",
+        1: "1px",
+        2: "2px",
+        3: "3px",
+        4: "4px",
+      },
+      boxShadow: {
+        // Hard, offset shadow (brutalist) — uses a token so it inverts per theme.
+        hard: "var(--shadow-hard)",
+        "hard-sm": "var(--shadow-hard-sm)",
+        "hard-lg": "var(--shadow-hard-lg)",
+        focus: "var(--shadow-focus)",
+      },
+      keyframes: {
+        "pop": {
+          "0%": { transform: "scale(0.9)", opacity: "0" },
+          "60%": { transform: "scale(1.04)" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "slide-up": {
+          "0%": { transform: "translateY(8px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "pulse-ring": {
+          "0%": { boxShadow: "0 0 0 0 var(--shadow-focus)" },
+          "70%": { boxShadow: "0 0 0 6px transparent" },
+          "100%": { boxShadow: "0 0 0 0 transparent" },
+        },
+      },
+      animation: {
+        "pop": "pop 180ms ease-out",
+        "slide-up": "slide-up 220ms ease-out",
+        "fade-in": "fade-in 160ms ease-out",
+        "pulse-ring": "pulse-ring 1.4s ease-out infinite",
       },
     },
   },

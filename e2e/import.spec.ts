@@ -5,6 +5,8 @@ test.describe("Unifies — curriculum import & AI gap analysis", () => {
     await page.goto("/");
     const input = page.getByTestId("curriculum-input");
     await expect(input).toBeVisible();
+    // First-time-visitor onboarding card explains how it works.
+    await expect(page.getByTestId("onboarding-card")).toBeVisible();
 
     await input.fill(
       "# Phase 1: Python\n- Variables and types\n- Functions\n\n# Phase 2: Web\n- HTTP and REST"

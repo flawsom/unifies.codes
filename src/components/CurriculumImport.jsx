@@ -50,6 +50,30 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
           beginner to staff-level.
         </p>
 
+        <div className="card mt-6" data-testid="onboarding-card">
+          <h2 className="font-display text-h3">New to Unifies? Here's how it works</h2>
+          <ol className="mt-3 space-y-2 text-sm list-decimal list-inside">
+            <li>
+              <strong>Paste your curriculum</strong> (or upload a file, or load the FAANG/FDE
+              sample). Unifies reads whatever you bring — a syllabus, a job description, your
+              own notes.
+            </li>
+            <li>
+              <strong>Unifies structures it</strong> with an AI (or a built-in offline planner)
+              and fills the gaps: it adds foundational basics for true beginners and
+              advanced/staff-level depth, then shows what <em>you</em> included vs what Unifies added.
+            </li>
+            <li>
+              <strong>Track it</strong> — check off items, build streaks, see insights, and use
+              Revision &amp; skip when you already know something.
+            </li>
+          </ol>
+          <p className="mt-3 text-xs text-slate-500">
+            No account needed — your plan is saved on this device. Sign in with Google (top
+            right) to sync across devices and unlock shareable profiles.
+          </p>
+        </div>
+
         <div className="card mt-8">
           <label className="label" htmlFor="cur-input">
             Your curriculum (plain text, markdown, or CSV)

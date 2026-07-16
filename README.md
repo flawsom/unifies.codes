@@ -208,10 +208,10 @@ Restart `npm run dev` after editing this file.
 In the Supabase dashboard, go to **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](./supabase/schema.sql), and run it. This creates:
 
 - `profiles` — one row per account (email, display name, `is_admin` flag)
-- `curriculum` — a single editable row holding the whole topic tree, editable by admins
-- `progress` — one row per account holding their checked items + start date
+- `curriculum` — a single editable row holding the *default* topic tree, editable by admins (the Admin Panel edits this)
+- `progress` — one row per account holding their checked items, start date, their **own uploaded plan** (`curriculum_json`), and revision skips (`skipped`)
 
-All three tables have row-level security enabled: users can only read/write their own data, admins can read/write everyone's.
+All tables have row-level security enabled: users can only read/write their own data, admins can read/write everyone's.
 
 ### 4. Enable Google as an auth provider
 
@@ -285,6 +285,7 @@ click through.
    - `VITE_SUPABASE_URL` = `https://YOUR-REF.supabase.co` (account mode)
    - `VITE_SUPABASE_ANON_KEY` = your anon key (account mode)
    - `OPENROUTER_API_KEY` = your free OpenRouter key (enables the AI analyzer; without it, the offline planner is used)
+   - `OPENROUTER_MODEL` = *(optional)* override the free model, e.g. `meta-llama/llama-3.1-8b-instruct:free`
    Add them under **Project → Settings → Environment Variables**. Set them for
    **Production, Preview, and Development** so both the live site and preview
    deploys get them.
@@ -329,7 +330,8 @@ file, both declaring the SPA fallback + headers, so Netlify "just works."
    (`netlify.toml` already sets these, so they'll be pre-filled.)
 4. **Environment variables** (all optional): **Site configuration →
    Environment variables → Add a variable** for `VITE_SUPABASE_URL`,
-   `VITE_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY`. Set the value for **all
+   `VITE_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`, and optionally
+   `OPENROUTER_MODEL` (override the free model). Set the value for **all
    deploy contexts** (Production, Deploy Previews, Branch deploys).
 5. Click **Deploy site**. You get a `*.netlify.app` URL; add a custom domain under
    **Domain settings**.

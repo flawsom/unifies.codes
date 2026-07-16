@@ -14,10 +14,10 @@ Hosted at **[unifies.codes](https://unifies.codes)** · Open source at **[github
 <!-- STATUS -->
 
 ![tests](https://img.shields.io/badge/tests-53/53%20passing-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-51.89%25-blue)
+![coverage](https://img.shields.io/badge/coverage-51.95%25-blue)
 ![ci](https://img.shields.io/badge/CI-GitHub%20Actions-9cf)
 
-> _Status auto-generated from the Vitest run: **53/53 tests passing** across **8 file(s)**, **51.89%** line coverage. This block is updated by CI — do not edit by hand._
+> _Status auto-generated from the Vitest run: **53/53 tests passing** across **8 file(s)**, **51.95%** line coverage. This block is updated by CI — do not edit by hand._
 
 <!-- /STATUS -->
 

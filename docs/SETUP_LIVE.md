@@ -19,7 +19,7 @@ Neither requires a paid plan. Both are configured with env vars on your host —
 
 1. In your Supabase project: **SQL Editor → New query**.
 2. Open [`supabase/schema.sql`](../supabase/schema.sql) in this repo, copy its **entire** contents, paste into the query box.
-3. Click **Run**. You should see `Success. No rows returned` (the script only creates tables + RLS policies; no data is inserted).
+3. Click **Run**. The script drops and recreates the tables + RLS policies, so it's safe to re-run. You'll see `Success. No rows returned` (no data is inserted). If you ever hit a `column "id" does not exist` error, just re-run this script — it resets the schema to the correct shape.
 
 This creates:
 - `profiles` — one row per account (public share handle + live snapshot)

@@ -173,7 +173,7 @@ Then open the URL it prints (usually `http://localhost:5173`). This works immedi
 
 ## Setting up accounts (Google OAuth + admin panel)
 
-This uses [Supabase](https://supabase.com) for auth and storage — it has a free tier and needs no server of your own.
+This uses [Supabase](https://supabase.com) for auth and storage — it has a free tier and needs no server of your own. For a copy-paste walkthrough that also covers the AI key and host env vars, see **[docs/SETUP_LIVE.md](./docs/SETUP_LIVE.md)**.
 
 ### 1. Create a Supabase project
 

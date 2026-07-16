@@ -1,11 +1,12 @@
 -- ============================================================================
--- FDE Tracker — Supabase schema (free & open source; live data only)
+-- Unifies — Supabase schema (free & open source; live data only)
 -- Run this in the Supabase SQL editor:
---   https://smggxiugcqwfjqtynlnc.supabase.co → Project → SQL → New query → paste & run
+--   Your Supabase project → SQL → New query → paste & run
 --
 -- Tables:
 --   profiles   — one row per auth user; carries the public share handle + live snapshot
---   progress   — per-user check-in state (checked map, timestamps, XP, mission start)
+--   progress   — per-user check-in state (checked map, timestamps, XP, mission start,
+--                the user's uploaded plan `curriculum_json`, and revision `skipped`)
 --   curriculum — optional live-editable roadmap (admin panel seed)
 --
 -- All reads/writes go through the anon key + Row Level Security. No service-role

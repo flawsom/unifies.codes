@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { initRuntimeConfig } from "./lib/runtimeConfig";
+import "./index.css";
 
 // Resolve Supabase config at runtime BEFORE any module reads it. This applies
 // build-time env, the /api/analyze endpoint, and a committed public fallback —

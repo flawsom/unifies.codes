@@ -526,6 +526,7 @@ export default function DeploymentTracker() {
       <CurriculumImport
         onUsePlan={handleUsePlan}
         onLoadSample={handleLoadSample}
+        onHome={handleReset}
       />
     );
   }
@@ -639,7 +640,7 @@ export default function DeploymentTracker() {
         onSelect={onPaletteSelect}
       />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <div className="border-b border-slate-800 sticky top-0 bg-slate-950/95 backdrop-blur z-10">
+      <div className="app-header border-b border-slate-800 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-5 py-5">
           <div className="flex items-baseline justify-between flex-wrap gap-3">
             <button
@@ -654,7 +655,7 @@ export default function DeploymentTracker() {
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="text-slate-400 hover:text-slate-200 text-sm font-mono"
+                className="btn-secondary text-sm px-3 py-1 font-mono"
                 title="Toggle theme"
                 aria-label="Toggle color theme"
               >

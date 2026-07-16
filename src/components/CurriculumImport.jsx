@@ -4,8 +4,9 @@
 import React, { useState, useRef, useCallback } from "react";
 import { analyzeCurriculum, planToCurriculum } from "../utils/analyze";
 import { SAMPLE_CURRICULA } from "../data/curriculum";
+import AccountBar from "./AccountBar";
 
-export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSample }) {
+export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSample, onHome }) {
   const [text, setText] = useState(initialText);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -43,6 +44,16 @@ export default function CurriculumImport({ initialText = "", onUsePlan, onLoadSa
   return (
     <div className="min-h-screen bg-white text-black px-4 py-10">
       <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <button
+            onClick={() => onHome && onHome()}
+            className="font-mono text-xs tracking-[0.2em] uppercase text-black hover:underline underline-offset-2"
+            aria-label="Back to home"
+          >
+            Unifies
+          </button>
+          <AccountBar />
+        </div>
         <h1 className="font-display text-h2 md:text-h1 leading-none">UNIFIES</h1>
         <p className="mt-3 text-lg max-w-xl">
           Paste any curriculum — a bootcamp syllabus, a job description, your own

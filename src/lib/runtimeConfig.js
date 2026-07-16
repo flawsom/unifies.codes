@@ -23,7 +23,7 @@ export async function initRuntimeConfig() {
   }
   // 2) runtime endpoint (host server env — survives deploys/config changes)
   try {
-    const res = await fetch("/api/config", { headers: { accept: "application/json" } });
+    const res = await fetch("/api/runtime-config", { headers: { accept: "application/json" } });
     if (res.ok) {
       const d = await res.json();
       if (d && d.url && d.key) {

@@ -38,9 +38,9 @@
                     }
                 ],
     "functions":  {
-                      "api/config.js":  {
-                                            "maxDuration":  10
-                                        },
+                      "api/runtime-config.js":  {
+                                                    "maxDuration":  10
+                                                },
                       "api/analyze.js":  {
                                              "maxDuration":  30
                                          }

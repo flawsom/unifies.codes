@@ -1,8 +1,7 @@
-// api/config.js — Vercel serverless function
+// api/runtime-config.js — Vercel serverless function
 // Returns public Supabase config to the browser at runtime so the app can pick
 // up host env vars (SUPABASE_URL / SUPABASE_ANON_KEY, with or without VITE_
-// prefix) without requiring a rebuild. Inlined (no shared import) for reliable
-// bundling on Vercel.
+// prefix) without requiring a rebuild.
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "public, max-age=60");
   res.status(200).json({
